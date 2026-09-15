@@ -47,7 +47,7 @@ The Roon logo isn't bundled with the plugin, to avoid shipping any copyrighted a
 
 ## Installation
 
-Requires Stream Deck software 6.0 or later, on macOS 10.11+ or Windows 10+. The button actions work on any Stream Deck; the two Dial actions need a Stream Deck+.
+Requires Stream Deck software 6.9 or later, on macOS 10.11+ or Windows 10+. The button actions work on any Stream Deck; the two Dial actions need a Stream Deck+.
 
 **Elgato Marketplace:** coming soon, this section will be updated with a link once the listing is live.
 
