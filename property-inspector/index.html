@@ -1,0 +1,316 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+    <meta name=apple-mobile-web-app-capable content=yes>
+    <meta name=apple-mobile-web-app-status-bar-style content=black>
+    <title>com.vulkan.roon-dialed-up.pi</title>
+    <link rel="stylesheet" href="css/sdpi.css">
+    <style type="text/css">
+      .multirow-info {
+        background-position: 72px 4px;
+      }
+
+      #roon-core-connect {
+        margin-left: auto;
+        margin-right: 0;
+      }
+
+      .sdpi-disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="sdpi-wrapper">
+
+      <div class="sdpi-item hidden" id="roon-core-not-connected">
+        <details class="message caution">
+          <summary>Roon core not connected</summary>
+        </details>
+      </div>
+
+      <details class="pointer" open id="icon-style-section">
+        <summary>Icon Style</summary>
+        <p>The following settings apply to all button actions.</p>
+
+        <div class="sdpi-item" type="radio" id="icon-style-item">
+          <div class="sdpi-item-label">Icon Style</div>
+          <div class="sdpi-item-value">
+            <div class="sdpi-item-child">
+              <input type="radio" name="icon-style" value="ledGrid" id="icon-style-ledgrid">
+              <label for="icon-style-ledgrid" class="sdpi-item-label"><span></span>LED Grid</label>
+            </div>
+            <div class="sdpi-item-child">
+              <input type="radio" name="icon-style" value="led" id="icon-style-led">
+              <label for="icon-style-led" class="sdpi-item-label"><span></span>LED</label>
+            </div>
+            <div class="sdpi-item-child">
+              <input type="radio" name="icon-style" value="classic" id="icon-style-classic">
+              <label for="icon-style-classic" class="sdpi-item-label"><span></span>Classic</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="sdpi-item" id="icon-custom-color-item">
+          <div class="sdpi-item-label">Color</div>
+          <div class="sdpi-item-value">
+            <input type="color" id="icon-custom-color" value="#ffffff">
+          </div>
+        </div>
+      </details>
+
+      <details class="pointer" id="roon-core">
+        <summary>Roon Core</summary>
+        <p>The following Roon Core settings apply to all actions.</p>
+        <p>You can find these values in <i>Roon</i> / <i>Settings</i> / <i>Displays</i></p>
+
+        <div class="roon-core-fields">
+          <div class="sdpi-item">
+            <div class="sdpi-item-label">Hostname</div>
+            <input class="sdpi-item-value full" type="text" id="roon-hostname" value="" required>
+          </div>
+
+          <div class="sdpi-item">
+            <div class="sdpi-item-label">Port</div>
+            <input class="sdpi-item-value full" id="roon-port" inputmode="numeric" min="1" max="64435" type="number" name="roon-port" required>
+          </div>
+
+          <div class="sdpi-item">
+            <div class="sdpi-item-label empty"></div>
+            <button class="sdpi-item-value max40" id="roon-core-connect">Connect</button>
+          </div>
+
+          <div class="sdpi-item">
+            <details class="message info">
+              <summary>Don't forget to enable the extension in Roon.</summary>
+            </details>
+          </div>
+
+        </div>
+      </details>
+
+      <div class="sdpi-heading hidden" id="screen-heading">Screen</div>
+
+      <div class="sdpi-item hidden" type="checkbox" id="show-volume-item">
+        <div class="sdpi-item-label">Volume</div>
+        <div class="sdpi-item-value">
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-volume">
+            <label for="show-volume" class="sdpi-item-label"><span></span>Show Volume</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" id="roon-screen-options-item">
+        <div class="sdpi-item-label">Options</div>
+        <div class="sdpi-item-value min100">
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-album-art">
+            <label for="show-album-art" class="sdpi-item-label"><span></span>Show Album Art</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-logo">
+            <label for="show-logo" class="sdpi-item-label"><span></span>Show Logo</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" type="radio" id="title-mode-item">
+        <div class="sdpi-item-label">Title</div>
+        <div class="sdpi-item-value">
+          <div class="sdpi-item-child">
+            <input type="radio" name="title-mode" value="off" id="title-mode-off">
+            <label for="title-mode-off" class="sdpi-item-label"><span></span>Off</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="radio" name="title-mode" value="output" id="title-mode-output">
+            <label for="title-mode-output" class="sdpi-item-label"><span></span>Output</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="radio" name="title-mode" value="track" id="title-mode-track">
+            <label for="title-mode-track" class="sdpi-item-label"><span></span>Artist - Song</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" type="radio" id="progress-bar-mode-item">
+        <div class="sdpi-item-label">Progress Bar</div>
+        <div class="sdpi-item-value">
+          <div class="sdpi-item-child">
+            <input type="radio" name="progress-bar-mode" value="off" id="progress-bar-mode-off">
+            <label for="progress-bar-mode-off" class="sdpi-item-label"><span></span>Off</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="radio" name="progress-bar-mode" value="replace" id="progress-bar-mode-replace">
+            <label for="progress-bar-mode-replace" class="sdpi-item-label"><span></span>Replace Volume Bar</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="radio" name="progress-bar-mode" value="separate" id="progress-bar-mode-separate">
+            <label for="progress-bar-mode-separate" class="sdpi-item-label"><span></span>Separate Row</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" type="range" id="album-art-transparency-item">
+        <div class="sdpi-item-label">Album Art Transparency</div>
+        <div class="sdpi-item-value">
+          <span>0</span>
+          <input type="range" min="0" max="100" step="10" value="50" id="album-art-transparency">
+          <span>100</span>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" type="range" id="ui-transparency-item">
+        <div class="sdpi-item-label">UI Transparency</div>
+        <div class="sdpi-item-value">
+          <span>0</span>
+          <input type="range" min="0" max="100" step="10" value="100" id="ui-transparency">
+          <span>100</span>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" type="checkbox" id="color-options-item">
+        <div class="sdpi-item-label">Colors</div>
+        <div class="sdpi-item-value min100">
+          <div class="sdpi-item-child">
+            <label class="sdpi-item-label">Text</label>
+            <input type="color" id="text-color" value="#ffffff">
+          </div>
+          <div class="sdpi-item-child">
+            <label class="sdpi-item-label">Bar</label>
+            <input type="color" id="bar-color" value="#ffffff">
+          </div>
+        </div>
+      </div>
+
+      <!-- com.vulkan.roon-dialed-up.play-pause -->
+      <div class="sdpi-item hidden" id="roon-play-options-item">
+        <div class="sdpi-item-label">Dynamic cover</div>
+        <div class="sdpi-item-value min100">
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-cover-art">
+            <label for="show-cover-art" class="sdpi-item-label"><span></span>Show Album Art</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-artist-track">
+            <label for="show-artist-track" class="sdpi-item-label"><span></span>Show Artist/Track</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-progress-bar">
+            <label for="show-progress-bar" class="sdpi-item-label"><span></span>Show Progress Bar</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="show-seek-position">
+            <label for="show-seek-position" class="sdpi-item-label"><span></span>Show Elapsed Time</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- com.vulkan.roon-dialed-up.play-item / com.vulkan.roon-dialed-up.play-this -->
+      <div class="hidden" id="roon-play-item-item">
+        <div class="sdpi-item">
+          <div class="sdpi-item-label">Item type</div>
+          <select class="sdpi-item-value select" id="play-item-type">
+              <option class="hidden" id="play-item-type-album" value="albums">Album</option>
+              <option class="hidden" id="play-item-type-artist" value="artists">Artist</option>
+              <option class="hidden" id="play-item-type-composer" value="composers">Composer</option>
+              <option class="hidden" id="play-item-type-radio" value="internet_radio">Radio station</option>
+              <option class="hidden" id="play-item-type-genre" value="genres">Genre</option>
+              <option class="hidden" id="play-item-type-playlist" value="playlists">Playlist</option>
+              <option class="hidden" id="play-item-type-tag" value="tags">Tag</option>
+          </select>
+        </div>
+
+        <div class="sdpi-item" id="play-item-action-item">
+          <div class="sdpi-item-label">Item action</div>
+          <select class="sdpi-item-value select" id="play-item-action">
+              <option id="play-item-action-play-now" value="Play Now">Play Now</option>
+              <option id="play-item-action-shuffle" value="Shuffle">Shuffle</option>
+              <option id="play-item-action-add-next" value="Add Next">Add Next</option>
+              <option id="play-item-action-queue" value="Queue">Queue</option>
+              <option id="play-item-action-radio" value="Start Radio">Start Radio</option>
+          </select>
+        </div>
+
+        <div class="sdpi-item hidden" id="play-item-title-item">
+          <div class="sdpi-item-label">Item title</div>
+          <input class="sdpi-item-value full" type="text" id="play-item-title" value="" required>
+        </div>
+      </div>
+
+      <!-- com.vulkan.roon-dialed-up.volume-set -->
+      <div class="hidden" id="roon-volume-set-item">
+        <div class="sdpi-item">
+          <div class="sdpi-item-label">Volume</div>
+          <input class="sdpi-item-value" id="roon-volume-set" inputmode="numeric" tooltip="A volume value that matches your player's valid values" placeholder="Volume level" type="number" name="roonVolume">
+        </div>
+        <div class="sdpi-item">
+          <div class="sdpi-item-label">Options</div>
+          <div class="sdpi-item-value min100">
+            <div class="sdpi-item-child">
+              <input type="checkbox" value="true" id="show-current-volume">
+              <label for="show-current-volume" class="sdpi-item-label"><span></span>Show current volume</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdpi-heading">Player</div>
+
+      <div class="sdpi-item hidden" id="zone-caution">
+        <details class="message caution multirow-info">
+          <summary id="zone-caution-content"></summary>
+        </details>
+      </div>
+
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Output</div>
+        <input class="sdpi-item-value" type="text" id="roon-output-name" value="" required>
+      </div>
+
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Available outputs</div>
+        <select class="sdpi-item-value select" id="available-roon-outputs">
+        </select>
+      </div>
+      <div class="sdpi-item">
+        <details class="message info multirow-info">
+          <summary>The output name must match exactly what's entered into Roon. You can select an active output to fill in the name to use.</summary>
+        </details>
+      </div>
+
+      <div class="sdpi-heading">Button</div>
+
+      <div type="checkbox" class="sdpi-item" id="single-check">
+        <div class="sdpi-item-label">Behavior</div>
+        <div class="sdpi-item-value">
+          <div class="sdpi-item-child">
+            <input type="checkbox" value="true" id="disable-when-unavailable">
+            <label for="disable-when-unavailable" class="sdpi-item-label"><span></span>Dim when action not available</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdpi-item hidden" type="radio" id="button-press-mode-item">
+        <div class="sdpi-item-label">Button Press</div>
+        <div class="sdpi-item-value">
+          <div class="sdpi-item-child">
+            <input type="radio" name="button-press-mode" value="mute" id="button-press-mode-mute">
+            <label for="button-press-mode-mute" class="sdpi-item-label"><span></span>Mute</label>
+          </div>
+          <div class="sdpi-item-child">
+            <input type="radio" name="button-press-mode" value="playpause" id="button-press-mode-playpause">
+            <label for="button-press-mode-playpause" class="sdpi-item-label"><span></span>Play/Pause</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sdpi-info-label hidden" style="top: -1000;" value=""></div>
+
+    <script type="module" src="js/index.js"></script>
+  </body>
+</html>

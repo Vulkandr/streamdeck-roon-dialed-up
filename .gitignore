@@ -1,0 +1,12 @@
+# Ignore the build / development runtime folder
+com.vulkan.roon-dialed-up.sdPlugin
+
+# Dependencies
+node_modules
+
+# Parcel build cache
+.parcel-cache
+
+# OS junk files
+.DS_Store
+Thumbs.db
