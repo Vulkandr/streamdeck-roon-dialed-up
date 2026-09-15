@@ -117,7 +117,8 @@ npm run property-inspector:build:watch
 
 ### Build a release package
 
-- Bump `version` in `package.json` and the version number in `manifest.json`
+- Bump `version` in `package.json` and `Version` in `manifest.json`. `manifest.json`'s `Version` must use the full `major.minor.patch.build` format (e.g. `1.0.3.0`), a three-part version like `1.0.3` fails validation.
+- If you ever need to raise `Software.MinimumVersion` in `manifest.json`, note the current CLI only accepts specific values (`6.4` through `7.3` as of this writing), not an arbitrary version string.
 - `npm run build`
 
 ## Misc
