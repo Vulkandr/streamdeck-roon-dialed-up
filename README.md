@@ -70,7 +70,13 @@ npm install
 npm run build
 ```
 
-The `com.vulkan.roon-dialed-up.sdPlugin` folder is ready to install as soon as this finishes. The last step of `build` also runs Elgato's [DistributionTool](https://developer.elgato.com/documentation/stream-deck/sdk/packaging/) to produce a single-file package in `../Release/`, which needs that tool installed separately, if you don't have it, that one step will fail but the `.sdPlugin` folder itself will already be built correctly.
+The `com.vulkan.roon-dialed-up.sdPlugin` folder is ready to install as soon as this finishes. The last step of `build` also runs Elgato's [Stream Deck CLI](https://docs.elgato.com/streamdeck/cli/intro) (`streamdeck pack`) to produce a single-file `.streamDeckPlugin` package in `../Release/`. That needs the CLI installed globally first:
+
+```
+npm install -g @elgato/cli
+```
+
+If you skip this, that one step will fail but the `.sdPlugin` folder itself will already be built correctly.
 
 ### Enable Stream Deck debug mode
 

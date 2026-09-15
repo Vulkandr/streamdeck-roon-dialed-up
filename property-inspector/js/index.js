@@ -663,6 +663,36 @@ export default class ConfigApp {
     const actionUuid = this.actionUuid;
     log(`Setting visibility for "${actionUuid}" elements, if necessary.`);
 
+    const conditionalElementIds = [
+      "roon-play-options-item",
+      "roon-play-item-item",
+      "play-item-title-item",
+      "play-item-type-album",
+      "play-item-type-artist",
+      "play-item-type-composer",
+      "play-item-type-radio",
+      "play-item-type-genre",
+      "play-item-type-playlist",
+      "play-item-type-tag",
+      "roon-volume-set-item",
+      "button-press-mode-item",
+      "screen-heading",
+      "show-volume-item",
+      "roon-screen-options-item",
+      "title-mode-item",
+      "progress-bar-mode-item",
+      "album-art-transparency-item",
+      "ui-transparency-item",
+      "color-options-item",
+    ];
+    conditionalElementIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if(el) {
+        el.classList.add("hidden");
+      }
+    });
+    document.getElementById("icon-style-section").classList.remove("hidden");
+
     const showElements = [];
 
     if(!this.globalSettings || !this.globalSettings.roonHostname || !this.globalSettings.roonPort) {

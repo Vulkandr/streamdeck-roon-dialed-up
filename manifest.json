@@ -1,4 +1,5 @@
 {
+  "UUID": "com.vulkan.roon-dialed-up",
   "Actions": [
     {
       "UUID": "com.vulkan.roon-dialed-up.play-pause",
@@ -11,13 +12,13 @@
           "Name": "Play",
           "Image": "plug-in/images/play-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         },
         {
           "Name": "Pause",
           "Image": "plug-in/images/pause-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -31,7 +32,7 @@
           "Name": "Play",
           "Image": "plug-in/images/play-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -45,7 +46,7 @@
           "Name": "Pause",
           "Image": "plug-in/images/pause-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -59,7 +60,7 @@
           "Name": "Play Item",
           "Image": "plug-in/images/play-item-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -73,7 +74,7 @@
           "Name": "Play Related Item",
           "Image": "plug-in/images/play-this-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -87,7 +88,7 @@
           "Name": "Stop",
           "Image": "plug-in/images/stop-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -156,13 +157,13 @@
           "Name": "Mute On",
           "Image": "plug-in/images/mute-on-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         },
         {
           "Name": "Mute Off",
           "Image": "plug-in/images/mute-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -176,13 +177,13 @@
           "Name": "Shuffle On",
           "Image": "plug-in/images/shuffle-on-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         },
         {
           "Name": "Shuffle Off",
           "Image": "plug-in/images/shuffle-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -196,13 +197,13 @@
           "Name": "Loop One",
           "Image": "plug-in/images/loop-one-on-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         },
         {
           "Name": "No Loop",
           "Image": "plug-in/images/loop-one-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -216,13 +217,13 @@
           "Name": "Loop All",
           "Image": "plug-in/images/loop-all-on-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         },
         {
           "Name": "No Loop",
           "Image": "plug-in/images/loop-all-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -236,13 +237,13 @@
           "Name": "Radio On",
           "Image": "plug-in/images/roon-radio-on-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         },
         {
           "Name": "Radio Off",
           "Image": "plug-in/images/roon-radio-key",
           "TitleAlignment": "bottom",
-          "FontSize": "14"
+          "FontSize": 14
         }
       ]
     },
@@ -309,7 +310,7 @@
   "CategoryIcon": "plug-in/images/roon-category",
   "PropertyInspectorPath": "property-inspector/index.html",
   "URL": "https://github.com/Vulkandr",
-  "Version": "1.0.1",
+  "Version": "1.0.3.0",
   "OS": [
     {
       "Platform": "mac",
@@ -321,6 +322,6 @@
     }
   ],
   "Software": {
-    "MinimumVersion": "6.0"
+    "MinimumVersion": "6.4"
   }
 }
