@@ -309,7 +309,7 @@
   "Category": "Roon: Dialed Up",
   "CategoryIcon": "plug-in/images/roon-category",
   "PropertyInspectorPath": "property-inspector/index.html",
-  "URL": "https://github.com/Vulkandr",
+  "URL": "https://github.com/Vulkandr/streamdeck-roon-dialed-up",
   "Version": "1.0.3.0",
   "OS": [
     {
