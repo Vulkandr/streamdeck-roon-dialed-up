@@ -1,65 +1,33 @@
 {
-  "name": "roon-dialed-up",
-  "version": "1.0.3",
-  "description": "Allows controlling Roon from an Elgato Stream Deck",
-  "private": true,
-  "scripts": {
-    "build": "npm run build:clean && npm run build:webpack && npm run build:parcel:plug-in && npm run build:parcel:property-inspector && npm run build:package",
-    "build:clean": "node scripts/clean.js",
-    "build:webpack": "webpack",
-    "build:parcel:plug-in": "parcel build --no-optimize --no-source-maps --no-cache --no-autoinstall --dist-dir com.vulkan.roon-dialed-up.sdPlugin/plug-in/ --public-url \"./\" plug-in/index.html",
-    "build:parcel:property-inspector": "parcel build --no-optimize --no-source-maps --no-cache --dist-dir com.vulkan.roon-dialed-up.sdPlugin/property-inspector/ --public-url \"./\" property-inspector/index.html",
-    "build:fix-nesting": "node scripts/fix-nested-dist.js",
-    "build:package": "streamdeck pack com.vulkan.roon-dialed-up.sdPlugin --output ../Release/ --force --no-update-check",
-    "plug-in:build:watch": "cross-env DEBUG=plug-in,roon,roon:subscribe,roon:update,action:* parcel watch --no-cache --no-autoinstall --dist-dir com.vulkan.roon-dialed-up.sdPlugin/plug-in/ --public-url \"./\" plug-in/index.html",
-    "property-inspector:build:watch": "cross-env DEBUG=property-inspector* parcel watch --no-cache --dist-dir com.vulkan.roon-dialed-up.sdPlugin/property-inspector/ --public-url \"./\" property-inspector/index.html",
-    "test": "eslint --color plug-in/**/*.js property-inspector/**/*.js",
-    "test:watch": "esw --color --watch plug-in/**/*.js property-inspector/**/*.js"
-  },
-  "keywords": [],
-  "author": "Vulkandr",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Vulkandr/streamdeck-roon-dialed-up.git"
-  },
-  "license": "MIT",
-  "dependencies": {
-    "buffer": "^6.0.3",
-    "debug": "^4.3.4",
-    "node-roon-api": "github:roonlabs/node-roon-api.git#b09c875738360a9413518a8a51ac70294745a926",
-    "node-roon-api-browse": "github:roonlabs/node-roon-api-browse",
-    "node-roon-api-image": "github:roonlabs/node-roon-api-image",
-    "node-roon-api-transport": "github:roonlabs/node-roon-api-transport",
-    "pngjs": "^7.0.0"
-  },
-  "devDependencies": {
-    "@babel/preset-env": "^7.18.2",
-    "babel-eslint": "^10.1.0",
-    "copy-webpack-plugin": "^11.0.0",
-    "cross-env": "^7.0.3",
-    "eslint": "^8.17.0",
-    "eslint-watch": "^8.0.0",
-    "html-webpack-plugin": "^5.5.0",
-    "node-polyfill-webpack-plugin": "^1.1.4",
-    "parcel": "2.8.3",
-    "terser-webpack-plugin": "^5.3.3",
-    "webpack": "^5.73",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.9.2"
-  },
-  "@parcel/transformer-css": {
-    "errorRecovery": true
-  },
-  "babel": {
-    "presets": [
-      [
-        "@babel/preset-env",
-        {
-          "targets": {
-            "esmodules": true
-          }
-        }
-      ]
-    ]
-  }
+    "name": "roon-dialed-up",
+    "version": "2.0.0",
+    "private": true,
+    "scripts": {
+        "build": "rollup -c",
+        "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.vulkan.roon-dialed-up\""
+    },
+    "type": "module",
+    "devDependencies": {
+        "@elgato/cli": "^1.10.1",
+        "@rollup/plugin-commonjs": "^29.0.2",
+        "@rollup/plugin-node-resolve": "^15.2.2",
+        "@rollup/plugin-terser": "^1.0.0",
+        "@rollup/plugin-typescript": "^12.1.0",
+        "@tsconfig/node20": "^20.1.2",
+        "@types/node": "~24.1.0",
+        "rollup": "^4.0.2",
+        "tslib": "^2.6.2",
+        "typescript": "^5.2.2"
+    },
+    "dependencies": {
+        "@elgato/streamdeck": "^3.0.1",
+        "@resvg/resvg-wasm": "^2.6.2",
+        "node-roon-api": "github:roonlabs/node-roon-api#b09c875738360a9413518a8a51ac70294745a926",
+        "node-roon-api-browse": "github:roonlabs/node-roon-api-browse",
+        "node-roon-api-image": "github:roonlabs/node-roon-api-image",
+        "node-roon-api-status": "github:roonlabs/node-roon-api-status",
+        "node-roon-api-transport": "github:roonlabs/node-roon-api-transport",
+        "opentype.js": "^2.0.0",
+        "pngjs": "^7.0.0"
+    }
 }

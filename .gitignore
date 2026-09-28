@@ -1,12 +1,16 @@
-# Ignore the build / development runtime folder
-com.vulkan.roon-dialed-up.sdPlugin
+# Node.js
+node_modules/
 
-# Dependencies
-node_modules
+# Stream Deck files
+*.sdPlugin/bin
+*.sdPlugin/logs
 
-# Parcel build cache
-.parcel-cache
+# Copied in at build time by rollup.config.mjs's copy-roon-runtime-deps
+# plugin (the externalized Roon SDK packages + their own transitive deps)
+*.sdPlugin/node_modules
 
-# OS junk files
-.DS_Store
-Thumbs.db
+# Written at runtime by the plugin (pairing tokens, preferred Core)
+*.sdPlugin/roon-state.json
+
+# Packaged installer
+*.streamDeckPlugin

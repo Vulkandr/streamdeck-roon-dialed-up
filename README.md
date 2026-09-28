@@ -24,16 +24,19 @@ This started as a fork of Tomi Blinnikka's [streamdeck-roon](https://github.com/
 - Volume set
 - Mute / Unmute
 - Roon Radio on/off
+- Connection Status (a light that shows whether the plugin is connected to your Core, with an optional Core name underneath)
+- Toaster and Search (open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted), my companion app)
 
 ### Dials (Stream Deck+)
 
-- Adjust Volume — rotate to change volume, short press to mute/unmute (or play/pause, if set to that mode), long press to mute/unmute all zones
-- Player Controls — play/pause on press, previous/next on rotation, hold-to-mute on the touchscreen, with a Show Volume toggle to switch its touchscreen layout between a centered display and one that includes the volume readout
+- Adjust Volume: rotate to change volume, short press to mute/unmute (or play/pause, if set to that mode), long press to mute/unmute all zones
+- Player Controls: play/pause on press, previous/next on rotation, hold-to-mute on the touchscreen, with a Show Volume toggle to switch its touchscreen layout between a centered display and one that includes the volume readout
 
 ### Customization
 
 - Three icon styles: LED Grid, LED, and Classic, with a full color picker for the LED styles
-- Touchscreen title display: off, output name, or artist–song
+- Two text fonts, chosen per key or dial: Classic (the original Arial-style look) and Condensed (narrower, fits more text per line)
+- Touchscreen title display: off, output name, or artist and song
 - Touchscreen progress bar: off, replacing the volume bar, or as its own row
 - Optional logo, hiding it frees up horizontal space for the rest of the layout
 - UI and album art transparency sliders
@@ -47,7 +50,7 @@ The Roon logo isn't bundled with the plugin, to avoid shipping any copyrighted a
 
 ## Installation
 
-Requires Stream Deck software 6.9 or later, on macOS 10.11+ or Windows 10+. The button actions work on any Stream Deck; the two Dial actions need a Stream Deck+.
+Requires Stream Deck software 7.1 or later. The button actions work on any Stream Deck; the two Dial actions need a Stream Deck+.
 
 **Elgato Marketplace:** coming soon, this section will be updated with a link once the listing is live.
 
@@ -55,71 +58,55 @@ Requires Stream Deck software 6.9 or later, on macOS 10.11+ or Windows 10+. The 
 
 ## Configuration
 
-Add one of the Roon actions to your Deck, enter the hostname (or IP address) and port of your Roon Core, then click **Connect**. The port is usually `9100`, but some Roon Core setups use a dynamic port instead, check your Roon Core's own settings if the default doesn't connect.
+Add one of the Roon actions to your Deck. The plugin finds your Roon Core on its own; when it does, the **Roon Core** section at the top of the settings shows a green light and the Core's name.
 
-Open Roon, go to **Settings → Extensions**, find **Roon: Dialed Up**, and click **Enable**.
+Open Roon, go to **Settings → Extensions**, find **Roon: Dialed Up**, and click **Enable**. This is a one-time step per Core.
+
+Then open the **Output** section and pick the output (zone) the button should control. Each button remembers its own output.
+
+**If your Core isn't found for whatever reason**, click **Manual** next to the Core name, enter the Core's IP address (or hostname) and port (usually `9330`), and click **Connect**. The address is remembered. The **Available Cores** list lets you switch between Cores you have enabled.
+
+**Roon: Toasted buttons.** The Toaster and Search actions open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted) (my companion app) and do nothing if it isn't installed. Their settings show whether Toasted is running, with a Launch button when it isn't. Windows only.
+
+## Upgrading from 1.x
+
+Your existing buttons and your Roon authorization carry over, so there is nothing to re-enable in Roon. The old host and port fields are gone in favor of automatic discovery, with a Manual button as a fallback.
 
 ## Local development
 
 ### Source code
 
-The `plug-in/` and `property-inspector/` folders contain the plugin source. Building produces a `com.vulkan.roon-dialed-up.sdPlugin` folder alongside them.
+The plugin is TypeScript on the Stream Deck SDK v3 (Node.js). Source is in `src/`; the settings panel is `com.vulkan.roon-dialed-up.sdPlugin/ui/roon.html`.
 
 ```
 npm install
 npm run build
 ```
 
-The `com.vulkan.roon-dialed-up.sdPlugin` folder is ready to install as soon as this finishes. The last step of `build` also runs Elgato's [Stream Deck CLI](https://docs.elgato.com/streamdeck/cli/intro) (`streamdeck pack`) to produce a single-file `.streamDeckPlugin` package in `../Release/`. That needs the CLI installed globally first:
-
-```
-npm install -g @elgato/cli
-```
-
-If you skip this, that one step will fail but the `.sdPlugin` folder itself will already be built correctly.
-
-### Enable Stream Deck debug mode
-
-See the [Elgato SDK docs](https://developer.elgato.com/documentation/stream-deck/sdk/create-your-own-plugin/).
-
-**macOS:**
-
-```
-defaults write com.elgato.StreamDeck html_remote_debugging_enabled -bool YES
-```
-
-**Windows:**
-
-In Registry Editor, add a `DWORD` named `html_remote_debugging_enabled` with value `1` at `HKEY_CURRENT_USER\Software\Elgato Systems GmbH\StreamDeck`.
+`npm run build` bundles the plugin into `com.vulkan.roon-dialed-up.sdPlugin/bin` and copies the Roon libraries it needs into that folder's `node_modules`. The `.sdPlugin` folder is ready to install as soon as it finishes.
 
 ### Run without installing
 
-Symlink the built plugin folder into the Stream Deck plugins folder (adjust the source path to match your local checkout):
-
-**macOS:**
+Install Elgato's [Stream Deck CLI](https://docs.elgato.com/streamdeck/cli/intro), then link the built folder into Stream Deck and rebuild on change:
 
 ```
-ln -s ~/dev/streamdeck-roon-dialed-up/com.vulkan.roon-dialed-up.sdPlugin ~/Library/Application\ Support/com.elgato.StreamDeck/Plugins/com.vulkan.roon-dialed-up.sdPlugin
+npm install -g @elgato/cli
+streamdeck link com.vulkan.roon-dialed-up.sdPlugin
+npm run watch
 ```
 
-**Windows** (run as Administrator):
-
-```
-mklink /D "%APPDATA%\Elgato\StreamDeck\Plugins\com.vulkan.roon-dialed-up.sdPlugin" "C:\path\to\streamdeck-roon-dialed-up\com.vulkan.roon-dialed-up.sdPlugin"
-```
-
-Then run the plugin and property inspector in watch mode (two terminals):
-
-```
-npm run plug-in:build:watch
-npm run property-inspector:build:watch
-```
+Stream Deck locks a plugin's files while it is running, so quit the app before replacing the folder by hand.
 
 ### Build a release package
 
-- Bump `version` in `package.json` and `Version` in `manifest.json`. `manifest.json`'s `Version` must use the full `major.minor.patch.build` format (e.g. `1.0.3.0`), a three-part version like `1.0.3` fails validation.
-- If you ever need to raise `Software.MinimumVersion` in `manifest.json`, note the current CLI only accepts specific values (`6.4` through `7.3` as of this writing), not an arbitrary version string.
+- Bump `version` in `package.json` and `Version` in `manifest.json` (`major.minor.patch.build`, for example `2.0.0.0`).
 - `npm run build`
+- `streamdeck validate com.vulkan.roon-dialed-up.sdPlugin`
+- `streamdeck pack com.vulkan.roon-dialed-up.sdPlugin`
+
+### Fonts
+
+Text on keys and the touchscreen is drawn as vector outlines from the fonts in `com.vulkan.roon-dialed-up.sdPlugin/fonts/` (Liberation Sans and Fira Sans Condensed, both under the SIL Open Font License; see `OFL.txt` there). Liberation Sans is metrically identical to Arial, which the original plugin used.
 
 ## Misc
 

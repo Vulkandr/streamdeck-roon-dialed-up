@@ -1,0 +1,391 @@
+{
+	"Name": "Roon: Dialed Up",
+	"Version": "2.0.0.0",
+	"Author": "Vulkandr",
+	"Actions": [
+		{
+			"UUID": "com.vulkan.roon-dialed-up.play-pause",
+			"Name": "Play/Pause",
+			"Tooltip": "Toggle between Play and Pause",
+			"Icon": "imgs/actions/play-pause-action",
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Name": "Play",
+					"Image": "imgs/actions/play-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "Pause",
+					"Image": "imgs/actions/pause-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.play",
+			"Name": "Play",
+			"Tooltip": "Play",
+			"Icon": "imgs/actions/play-action",
+			"States": [
+				{
+					"Name": "Play",
+					"Image": "imgs/actions/play-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.pause",
+			"Name": "Pause",
+			"Tooltip": "Pause",
+			"Icon": "imgs/actions/pause-action",
+			"States": [
+				{
+					"Name": "Pause",
+					"Image": "imgs/actions/pause-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.play-item",
+			"Name": "Play Selected Item",
+			"Tooltip": "Play selected item, such as playlist, artist, tags, or Internet radio station",
+			"Icon": "imgs/actions/play-item-action",
+			"States": [
+				{
+					"Name": "Play Item",
+					"Image": "imgs/actions/play-item-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.play-this",
+			"Name": "Play Related Item",
+			"Tooltip": "Play current artist or album",
+			"Icon": "imgs/actions/play-this-action",
+			"States": [
+				{
+					"Name": "Play Related Item",
+					"Image": "imgs/actions/play-this-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.stop",
+			"Name": "Stop",
+			"Tooltip": "Stops playback (may pause instead)",
+			"Icon": "imgs/actions/stop-action",
+			"States": [
+				{
+					"Name": "Stop",
+					"Image": "imgs/actions/stop-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.previous",
+			"Name": "Previous",
+			"Tooltip": "Previous track. Hold to seek",
+			"Icon": "imgs/actions/previous-action",
+			"States": [
+				{
+					"Image": "imgs/actions/previous-key"
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.next",
+			"Name": "Next",
+			"Tooltip": "Next track. Hold to seek",
+			"Icon": "imgs/actions/next-action",
+			"States": [
+				{
+					"Image": "imgs/actions/next-key"
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.volume-up",
+			"Name": "Volume Up",
+			"Tooltip": "Nudge volume up. Hold to increase",
+			"Icon": "imgs/actions/volume-up-action",
+			"States": [
+				{
+					"Image": "imgs/actions/volume-up-key"
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.volume-down",
+			"Name": "Volume Down",
+			"Tooltip": "Nudge volume down. Hold to decrease",
+			"Icon": "imgs/actions/volume-down-action",
+			"States": [
+				{
+					"Image": "imgs/actions/volume-down-key"
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.volume-set",
+			"Name": "Set Volume",
+			"Tooltip": "Set specific volume level",
+			"Icon": "imgs/actions/volume-set-action",
+			"States": [
+				{
+					"Image": "imgs/actions/volume-set-key"
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.mute-unmute",
+			"Name": "Mute/Unmute",
+			"Tooltip": "Toggle between Mute/Unmute",
+			"Icon": "imgs/actions/mute-action",
+			"States": [
+				{
+					"Name": "Mute On",
+					"Image": "imgs/actions/mute-on-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "Mute Off",
+					"Image": "imgs/actions/mute-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.shuffle",
+			"Name": "Shuffle",
+			"Tooltip": "Toggle Shuffle on/off",
+			"Icon": "imgs/actions/shuffle-action",
+			"States": [
+				{
+					"Name": "Shuffle On",
+					"Image": "imgs/actions/shuffle-on-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "Shuffle Off",
+					"Image": "imgs/actions/shuffle-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.loop-one",
+			"Name": "Loop One",
+			"Tooltip": "Toggle between loop current track and no loop",
+			"Icon": "imgs/actions/loop-one-action",
+			"States": [
+				{
+					"Name": "Loop One",
+					"Image": "imgs/actions/loop-one-on-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "No Loop",
+					"Image": "imgs/actions/loop-one-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.loop-all",
+			"Name": "Loop All",
+			"Tooltip": "Toggle between loop all and no loop",
+			"Icon": "imgs/actions/loop-all-action",
+			"States": [
+				{
+					"Name": "Loop All",
+					"Image": "imgs/actions/loop-all-on-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "No Loop",
+					"Image": "imgs/actions/loop-all-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.roon-radio",
+			"Name": "Roon radio on/off",
+			"Tooltip": "Roon Radio On/Off",
+			"Icon": "imgs/actions/roon-radio-action",
+			"States": [
+				{
+					"Name": "Radio On",
+					"Image": "imgs/actions/roon-radio-on-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "Radio Off",
+					"Image": "imgs/actions/roon-radio-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.volume-encoder",
+			"Name": "Adjust Volume",
+			"Tooltip": "Adjust volume level",
+			"Icon": "imgs/actions/volume-encoder-action",
+			"UserTitleEnabled": false,
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"Icon": "imgs/actions/roon-encoder-default",
+				"layout": "layouts/volume.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust volume",
+					"Push": "Mute/unmute",
+					"Touch": "Mute/unmute",
+					"LongTouch": "Mute/unmute all zones"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/roon-encoder-key"
+				}
+			],
+			"SupportedInMultiActions": false,
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.player-controls",
+			"Name": "Player Controls",
+			"Tooltip": "Play/pause, skip tracks, and mute",
+			"Icon": "imgs/actions/play-pause-action",
+			"UserTitleEnabled": false,
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"Icon": "imgs/actions/roon-encoder-default",
+				"layout": "layouts/volume.json",
+				"TriggerDescription": {
+					"Rotate": "Previous / next track",
+					"Push": "Play/Pause",
+					"Touch": "Play/Pause",
+					"LongTouch": "Mute/unmute"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/roon-encoder-key"
+				}
+			],
+			"SupportedInMultiActions": false,
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.roon-toasted-toggle",
+			"Name": "Toaster",
+			"Tooltip": "Open Roon: Toasted (or install it, if it isn't yet)",
+			"Icon": "imgs/actions/toaster-action",
+			"States": [
+				{
+					"Name": "Toaster",
+					"Image": "imgs/actions/toaster-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.roon-toasted-search",
+			"Name": "Search",
+			"Tooltip": "Open Roon: Toasted's search (or install it, if it isn't yet)",
+			"Icon": "imgs/actions/search-action",
+			"States": [
+				{
+					"Name": "Search",
+					"Image": "imgs/actions/search-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"Name": "Connection Status",
+			"UUID": "com.vulkan.roon-dialed-up.status",
+			"Icon": "imgs/actions/status-action",
+			"Tooltip": "Shows whether the plugin is connected to a Roon Core",
+			"States": [
+				{
+					"Image": "imgs/actions/status-key"
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html",
+			"UserTitleEnabled": false
+		}
+	],
+	"Category": "Roon: Dialed Up",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Control Roon playback.",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"UUID": "com.vulkan.roon-dialed-up",
+	"URL": "https://github.com/Vulkandr/streamdeck-roon-dialed-up"
+}

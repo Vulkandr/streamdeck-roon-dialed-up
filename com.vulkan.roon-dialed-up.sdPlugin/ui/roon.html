@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roon: Dialed Up</title>
+<style>
+	/*
+	 * Settings panel for every action. Drawn in the Stream Deck app's own
+	 * neutral grays. Each section is a collapsible group whose header keeps
+	 * showing the essentials while collapsed (current Core, chosen output,
+	 * icon style), so nothing important is hidden by closing it.
+	 *
+	 * Which groups appear depends on the action (see applyActionVisibility).
+	 */
+	:root {
+		--bg: #2d2d2d;
+		--card: #373737;
+		--card-hover: #414141;
+		--selected: #4a4a4a;
+		--input: #2a2a2a;
+		--border: #484848;
+		--text: #e4e4e4;
+		--muted: #9a9a9a;
+		--faint: #707070;
+		--green: #4ade80;
+		--amber: #f5b64a;
+		--red: #f26d6d;
+		--radius: 6px;
+	}
+
+	* { box-sizing: border-box; }
+
+	html, body {
+		margin: 0;
+		padding: 0;
+		background: var(--bg);
+		color: var(--text);
+		font: 13px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		-webkit-font-smoothing: antialiased;
+		user-select: none;
+	}
+
+	::-webkit-scrollbar { width: 8px; height: 8px; }
+	::-webkit-scrollbar-track { background: transparent; }
+	::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+	::-webkit-scrollbar-thumb:hover { background: #666; }
+
+	.panel {
+		padding: 4px 12px 16px 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	/* ---- collapsible groups ---- */
+	details {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--card);
+	}
+	summary {
+		list-style: none;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 9px 12px;
+		cursor: pointer;
+		font-weight: 650;
+		border-radius: var(--radius);
+	}
+	summary::-webkit-details-marker { display: none; }
+	summary:hover { background: var(--card-hover); }
+	details[open] > summary { border-radius: var(--radius) var(--radius) 0 0; }
+	summary .chev {
+		width: 0; height: 0;
+		border-left: 5px solid var(--muted);
+		border-top: 4px solid transparent;
+		border-bottom: 4px solid transparent;
+		transition: transform 0.12s ease;
+		flex: none;
+	}
+	details[open] > summary .chev { transform: rotate(90deg); }
+	summary .title { flex: none; }
+	summary .brief {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		min-width: 0;
+		font-weight: 500;
+		color: var(--muted);
+	}
+	summary .brief span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	details[open] > summary .brief { display: none; }
+	.body { border-top: 1px solid var(--border); padding: 12px; }
+
+	/* ---- status dot ---- */
+	.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--faint); }
+	.dot.green { background: var(--green); box-shadow: 0 0 6px rgba(74, 222, 128, 0.55); }
+	.dot.amber { background: var(--amber); box-shadow: 0 0 6px rgba(245, 182, 74, 0.45); }
+	.dot.red   { background: var(--red); }
+	.dot.pulse { animation: pulse 1.4s ease-in-out infinite; }
+	@keyframes pulse { 50% { opacity: 0.35; } }
+
+	/* ---- Roon Core ---- */
+	.current { display: flex; gap: 10px; align-items: flex-start; }
+	.current .dot { margin-top: 5px; }
+	.name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.sub { color: var(--muted); font-size: 12px; margin-top: 1px; }
+	.hint { color: var(--amber); font-size: 12px; margin-top: 6px; }
+	.label {
+		color: var(--muted);
+		font-size: 11px;
+		font-weight: 650;
+		letter-spacing: 0.9px;
+		text-transform: uppercase;
+		margin: 14px 0 6px 0;
+	}
+	.current .small { flex: none; padding: 4px 10px; font-size: 12px; margin-top: 1px; }
+	.manual { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
+	.manual input[type="text"] { flex: 1; min-width: 0; }
+	.manual input[type="number"] { width: 68px; flex: none; -moz-appearance: textfield; }
+	.manual input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+	.manual button { flex: none; white-space: nowrap; }
+	.manual-note { color: var(--amber); font-size: 11.5px; margin-top: 5px; }
+	.core-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+	.core-row + .core-row { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+	.core-row .info { flex: 1; min-width: 0; }
+	.core-row .note { color: var(--amber); font-size: 11.5px; margin-top: 3px; }
+
+	button {
+		font: inherit;
+		color: var(--text);
+		background: var(--card-hover);
+		border: 1px solid var(--border);
+		border-radius: 5px;
+		padding: 5px 12px;
+		cursor: pointer;
+	}
+	button:hover:not(:disabled) { background: var(--selected); }
+	button:disabled { cursor: default; color: var(--muted); background: transparent; }
+	.wide { width: 100%; margin-top: 12px; padding: 7px 12px; background: transparent; }
+	.empty { color: var(--faint); font-size: 12px; padding: 6px 0; }
+
+	/* ---- output list ---- */
+	.list { max-height: 180px; overflow-y: auto; margin: -12px; }
+	.list::-webkit-scrollbar { width: 8px; }
+	.list::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+	.zone {
+		display: flex; align-items: center; gap: 10px;
+		padding: 7px 12px; cursor: pointer;
+		border-left: 3px solid transparent;
+	}
+	.zone + .zone { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+	.zone:hover { background: var(--card-hover); }
+	.zone.selected { background: var(--selected); border-left-color: var(--text); }
+	.zone .zname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.zone .zstate { font-size: 12px; color: var(--muted); font-weight: 600; }
+	.zone .zstate.playing { color: var(--green); }
+	.zone .zstate.loading { color: var(--amber); }
+	.zone.missing .zname { color: var(--muted); font-style: italic; }
+	.caution { color: var(--amber); font-size: 12px; margin: 24px 0 0 0; padding-top: 10px; border-top: 1px solid var(--border); }
+
+	/* ---- form controls ---- */
+	.row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+	.row .rlabel { flex: 1; min-width: 0; }
+	.row .rhint { color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+	.stack { display: flex; flex-direction: column; gap: 8px; }
+	.stack > .stack { gap: 8px; }
+
+	label.check { display: flex; align-items: center; gap: 9px; cursor: pointer; padding: 3px 0; }
+	input[type="checkbox"], input[type="radio"] {
+		appearance: none; -webkit-appearance: none;
+		width: 15px; height: 15px; margin: 0; flex: none;
+		background: var(--input); border: 1px solid #5a5a5a; border-radius: 4px;
+		display: grid; place-content: center; cursor: pointer;
+	}
+	input[type="radio"] { border-radius: 50%; }
+	input[type="checkbox"]::before, input[type="radio"]::before {
+		content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--text); transform: scale(0);
+		transition: transform 0.1s ease;
+	}
+	input[type="radio"]::before { border-radius: 50%; }
+	input:checked::before { transform: scale(1); }
+	input:checked { border-color: #8a8a8a; }
+
+	.seg { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+	.seg label { flex: 1; text-align: center; padding: 6px 4px; cursor: pointer; background: var(--input); font-size: 12.5px; white-space: nowrap; }
+	.seg label + label { border-left: 1px solid var(--border); }
+	.seg input { display: none; }
+	.seg label.on { background: var(--selected); color: var(--text); font-weight: 600; }
+	.seg label:hover:not(.on) { background: var(--card-hover); }
+
+	input[type="text"], input[type="number"], select {
+		font: inherit; color: var(--text); background: var(--input);
+		border: 1px solid var(--border); border-radius: 5px; padding: 6px 8px; width: 100%;
+	}
+	input[type="text"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: #7a7a7a; }
+	select { appearance: none; -webkit-appearance: none; padding-right: 26px;
+		background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+		background-position: calc(100% - 14px) 55%, calc(100% - 9px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+	select option { background: var(--input); }
+
+	input[type="color"] {
+		appearance: none; -webkit-appearance: none; width: 34px; height: 24px; padding: 0;
+		border: 1px solid var(--border); border-radius: 5px; background: var(--input); cursor: pointer;
+	}
+	input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+	input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
+
+	input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #555; border-radius: 2px; margin: 8px 0; }
+	input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--text); cursor: pointer; }
+	.range { display: flex; align-items: center; gap: 10px; }
+	.range .val { width: 34px; text-align: right; color: var(--muted); font-size: 12px; }
+
+	.disabled { opacity: 0.4; pointer-events: none; }
+	[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+	<div class="panel">
+		<details id="coreGroup">
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Roon Core</span>
+				<span class="brief"><span id="briefDot" class="dot pulse"></span><span id="briefCore">Searching…</span></span>
+			</summary>
+			<div class="body">
+				<div class="current">
+					<div id="dot" class="dot pulse"></div>
+					<div style="min-width: 0; flex: 1">
+						<div id="coreName" class="name">Looking for a Roon Core…</div>
+						<div id="coreSub" class="sub">Starting</div>
+						<div id="coreHint" class="hint" hidden></div>
+					</div>
+					<button id="manualBtn" class="small" title="Connect to a Core by address">Manual</button>
+				</div>
+				<div id="manualRow" class="manual" hidden>
+					<input type="text" id="manualHost" placeholder="Core IP or hostname" spellcheck="false" autocomplete="off">
+					<input type="number" id="manualPort" placeholder="9330" min="1" max="65535">
+					<button id="manualGo">Connect</button>
+				</div>
+				<div id="manualNote" class="manual-note" hidden></div>
+				<div class="label">Available Cores</div>
+				<div id="cores"></div>
+				<button id="rescan" class="wide">↻ Rescan for Cores</button>
+			</div>
+		</details>
+
+		<details id="toastedGroup" open hidden>
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Roon: Toasted</span>
+				<span class="brief"><span id="briefToastedDot" class="dot pulse"></span><span id="briefToasted">Checking…</span></span>
+			</summary>
+			<div class="body">
+				<div class="current">
+					<div id="toastedDot" class="dot pulse"></div>
+					<div style="min-width: 0; flex: 1">
+						<div class="name">Roon: Toasted</div>
+						<div id="toastedSub" class="sub">Checking…</div>
+					</div>
+					<button id="toastedBtn" class="small" hidden></button>
+				</div>
+			</div>
+		</details>
+
+		<details id="outputGroup">
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Output</span>
+				<span class="brief"><span id="briefOutput">None</span></span>
+			</summary>
+			<div class="body">
+				<div id="outputs" class="list"></div>
+				<div id="volumeCaution" class="caution" hidden>This output has a fixed volume, so this key can't change it.</div>
+			</div>
+		</details>
+
+		<details id="iconGroup" open>
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Icon Style</span>
+				<span class="brief"><span id="briefIcon">LED Grid</span></span>
+			</summary>
+			<div class="body stack">
+				<div class="row"><div class="rlabel">Style<div class="rhint">Applies to every key.</div></div></div>
+				<div class="seg" id="iconStyleSeg">
+					<label><input type="radio" name="iconStyle" value="ledGrid">LED Grid</label>
+					<label><input type="radio" name="iconStyle" value="led">LED</label>
+					<label><input type="radio" name="iconStyle" value="classic">Classic</label>
+				</div>
+				<div class="row" id="colorRow"><div class="rlabel">Color</div><input type="color" id="iconColor" value="#ffffff"></div>
+			</div>
+		</details>
+
+		<details id="fontGroup" open>
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Text Font</span>
+				<span class="brief"><span id="briefFont">Condensed</span></span>
+			</summary>
+			<div class="body stack">
+				<div class="row"><div class="rlabel">Font<div class="rhint">For this key only. Classic is the plugin's original font; Condensed fits more text per line.</div></div></div>
+				<div class="seg" data-setting="textFont">
+					<label><input type="radio" name="textFont" value="classic">Classic</label>
+					<label><input type="radio" name="textFont" value="condensed">Condensed</label>
+				</div>
+			</div>
+		</details>
+
+		<details id="optionsGroup" open>
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Options</span>
+			</summary>
+			<div class="body stack">
+				<!-- play / play-pause -->
+				<div id="optPlay" class="stack" hidden>
+					<label class="check"><input type="checkbox" data-setting="showCoverArt">Show Album Art</label>
+					<label class="check"><input type="checkbox" data-setting="showArtistTrack">Show Artist/Track</label>
+					<label class="check"><input type="checkbox" data-setting="showProgressBar">Show Progress Bar</label>
+					<label class="check"><input type="checkbox" data-setting="showSeekPosition">Show Elapsed Time</label>
+				</div>
+
+				<!-- play-item / play-this -->
+				<div id="optItem" class="stack" hidden>
+					<div class="row"><div class="rlabel">Item type</div></div>
+					<select id="itemType" data-setting="itemType">
+						<option value="albums">Album</option>
+						<option value="artists">Artist</option>
+						<option value="composers" data-only="play-item">Composer</option>
+						<option value="internet_radio" data-only="play-item">Radio station</option>
+						<option value="genres" data-only="play-item">Genre</option>
+						<option value="playlists" data-only="play-item">Playlist</option>
+						<option value="tags" data-only="play-item">Tag</option>
+					</select>
+					<div id="itemActionRow" class="stack">
+						<div class="row"><div class="rlabel">Item action</div></div>
+						<select id="itemAction" data-setting="itemAction">
+							<option value="Play Now">Play Now</option>
+							<option value="Shuffle">Shuffle</option>
+							<option value="Add Next">Add Next</option>
+							<option value="Queue">Queue</option>
+							<option value="Start Radio">Start Radio</option>
+						</select>
+					</div>
+					<div id="itemTitleRow" class="stack">
+						<div class="row"><div class="rlabel">Item title<div class="rhint">Must match the name in Roon exactly.</div></div></div>
+						<input type="text" id="itemTitle" data-setting="itemTitle" placeholder="Playlist, artist, album…">
+					</div>
+				</div>
+
+				<!-- volume-set -->
+				<div id="optVolumeSet" class="stack" hidden>
+					<div class="row"><div class="rlabel">Volume<div class="rhint">A level valid for this output (e.g. 35, or -20 for dB).</div></div></div>
+					<input type="number" id="volumeValue" data-setting="volume" placeholder="Volume level">
+					<label class="check"><input type="checkbox" data-setting="showCurrentVolume">Show current volume on the key</label>
+				</div>
+
+				<!-- adjust volume dial -->
+				<div id="optButtonPress" class="stack" hidden>
+					<div class="row"><div class="rlabel">Button press<div class="rhint">Hold: mute all outputs (Mute) or mute this output (Play/Pause).</div></div></div>
+					<div class="seg" data-setting="buttonPressMode">
+						<label><input type="radio" name="buttonPressMode" value="mute">Mute</label>
+						<label><input type="radio" name="buttonPressMode" value="playpause">Play/Pause</label>
+					</div>
+				</div>
+
+				<!-- connection status -->
+				<div id="optStatus" class="stack" hidden>
+					<label class="check"><input type="checkbox" data-setting="showName">Show Core name under the light</label>
+				</div>
+
+				<!-- all keys -->
+				<label class="check" id="optDim" hidden><input type="checkbox" data-setting="disableWhenUnavailable">Dim when action not available</label>
+			</div>
+		</details>
+
+		<details id="screenGroup" open hidden>
+			<summary>
+				<span class="chev"></span>
+				<span class="title">Screen</span>
+			</summary>
+			<div class="body stack">
+				<label class="check" id="optShowVolume" hidden><input type="checkbox" data-setting="showVolume">Show Volume</label>
+				<label class="check"><input type="checkbox" data-setting="showAlbumArt">Show Album Art</label>
+				<label class="check"><input type="checkbox" data-setting="showLogo">Show Logo</label>
+
+				<div class="row"><div class="rlabel">Title</div></div>
+				<div class="seg" data-setting="titleMode">
+					<label><input type="radio" name="titleMode" value="off">Off</label>
+					<label><input type="radio" name="titleMode" value="output">Output</label>
+					<label><input type="radio" name="titleMode" value="track">Artist - Song</label>
+				</div>
+
+				<div class="row"><div class="rlabel">Progress bar</div></div>
+				<div class="seg" data-setting="progressBarMode">
+					<label><input type="radio" name="progressBarMode" value="off">Off</label>
+					<label><input type="radio" name="progressBarMode" value="replace">Replace Volume</label>
+					<label><input type="radio" name="progressBarMode" value="separate">Separate Row</label>
+				</div>
+
+				<div class="row"><div class="rlabel">Album art transparency</div></div>
+				<div class="range"><input type="range" min="0" max="100" step="10" value="50" data-setting="albumArtTransparency"><span class="val"></span></div>
+				<div class="row"><div class="rlabel">UI transparency</div></div>
+				<div class="range"><input type="range" min="0" max="100" step="10" value="100" data-setting="uiTransparency"><span class="val"></span></div>
+
+				<div class="row"><div class="rlabel">Text color</div><input type="color" data-setting="textColor" value="#ffffff"></div>
+				<div class="row"><div class="rlabel">Bar color</div><input type="color" data-setting="barColor" value="#ffffff"></div>
+			</div>
+		</details>
+	</div>
+
+<script>
+	let socket = null;
+	let piUuid = null;
+	let actionInfo = null;
+	let actionKind = "";      // last segment of the action UUID, e.g. "play-pause"
+	let settings = {};
+	let state = null;
+	const switchNotes = {};
+	let manualOpen = false;      // the address row is showing (user pressed Manual)
+	let manualNote = "";
+	let manualBusy = false;      // a Connect request is in flight
+
+	const KEY_ACTIONS = ["play-pause", "play", "pause", "play-item", "play-this", "stop", "previous", "next",
+		"volume-up", "volume-down", "volume-set", "mute-unmute", "shuffle", "loop-one", "loop-all", "roon-radio"];
+	const DIAL_ACTIONS = ["volume-encoder", "player-controls"];
+	const VOLUME_ACTIONS = ["volume-up", "volume-down", "volume-set", "mute-unmute", "volume-encoder"];
+	const LINK_ACTIONS = ["roon-toasted-toggle", "roon-toasted-search"];
+	// The actions that draw text (track titles, elapsed time, a volume readout,
+	// the Core name, the strip's title and value); the rest are icon only.
+	const TEXT_ACTIONS = ["play-pause", "play", "volume-set", "status", "volume-encoder", "player-controls"];
+
+	// Called by Stream Deck when the panel opens.
+	function connectElgatoStreamDeckSocket(port, uuid, registerEvent, info, actionInfoJson) {
+		piUuid = uuid;
+		actionInfo = JSON.parse(actionInfoJson);
+		actionKind = actionInfo.action.split(".").pop();
+		settings = (actionInfo.payload && actionInfo.payload.settings) || {};
+
+		applyActionVisibility();
+		bindControls();
+		renderSettings();
+
+		socket = new WebSocket("ws://127.0.0.1:" + port);
+		socket.onopen = () => {
+			socket.send(JSON.stringify({ event: registerEvent, uuid: piUuid }));
+			sendToPlugin({ type: "getState" });
+		};
+		socket.onmessage = (e) => {
+			const msg = JSON.parse(e.data);
+			if (msg.event === "sendToPropertyInspector") {
+				handlePluginMessage(msg.payload);
+			} else if (msg.event === "didReceiveSettings") {
+				settings = (msg.payload && msg.payload.settings) || {};
+				renderSettings();
+				renderOutputs();
+			}
+		};
+		setInterval(() => sendToPlugin({ type: "getState" }), 10000);
+	}
+
+	function sendToPlugin(payload) {
+		if (!socket || socket.readyState !== WebSocket.OPEN) return;
+		socket.send(JSON.stringify({ event: "sendToPlugin", action: actionInfo.action, context: piUuid, payload }));
+	}
+
+	function saveSettings() {
+		if (!socket || socket.readyState !== WebSocket.OPEN) return;
+		socket.send(JSON.stringify({ event: "setSettings", context: piUuid, payload: settings }));
+	}
+
+	function setGlobal(patch) {
+		if (state) state.global = Object.assign({}, state.global || {}, patch);
+		sendToPlugin({ type: "setGlobal", global: patch });
+	}
+
+	function handlePluginMessage(payload) {
+		if (!payload) return;
+		if (payload.type === "state") {
+			const first = state === null;
+			state = payload;
+			if (first) {
+				applyDefaults();
+				autoOpenGroups();
+			}
+			render();
+		} else if (payload.type === "manualResult") {
+			manualBusy = false;
+			if (payload.ok) { manualOpen = false; manualNote = ""; }
+			else manualNote = payload.reason === "bad-port" ? "Port must be a number from 1 to 65535." :
+				payload.reason === "bad-host" ? "That doesn't look like an address. Use the Core's IP or hostname, without a port." :
+				"The plugin isn't connected to Roon yet; try again in a moment.";
+			renderManual();
+		} else if (payload.type === "switchResult") {
+			if (payload.ok) delete switchNotes[payload.coreId];
+			else if (payload.reason === "not-approved") switchNotes[payload.coreId] = "Enable Roon: Dialed Up in this Core's Settings > Extensions first.";
+			else switchNotes[payload.coreId] = "Couldn't switch to this Core (" + payload.reason + ").";
+			render();
+		}
+	}
+
+	function esc(text) {
+		return String(text == null ? "" : text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+	}
+
+	// ---- which groups apply to this action ----
+	function applyActionVisibility() {
+		const isKey = KEY_ACTIONS.includes(actionKind);
+		const isDial = DIAL_ACTIONS.includes(actionKind);
+		const isLink = LINK_ACTIONS.includes(actionKind);
+		const isRoon = isKey || isDial;
+
+		document.getElementById("coreGroup").hidden = !isRoon && actionKind !== "status";
+		document.getElementById("outputGroup").hidden = !isRoon;
+		document.getElementById("iconGroup").hidden = !(isKey || isLink);
+		document.getElementById("toastedGroup").hidden = !isLink;
+		document.getElementById("fontGroup").hidden = !TEXT_ACTIONS.includes(actionKind);
+		document.getElementById("screenGroup").hidden = !isDial;
+
+		const showPlay = actionKind === "play" || actionKind === "play-pause";
+		const showItem = actionKind === "play-item" || actionKind === "play-this";
+		document.getElementById("optPlay").hidden = !showPlay;
+		document.getElementById("optItem").hidden = !showItem;
+		document.getElementById("optVolumeSet").hidden = actionKind !== "volume-set";
+		document.getElementById("optButtonPress").hidden = actionKind !== "volume-encoder";
+		document.getElementById("optDim").hidden = !isKey;
+		document.getElementById("optStatus").hidden = actionKind !== "status";
+		document.getElementById("optionsGroup").hidden = !(isKey || actionKind === "volume-encoder" || actionKind === "status");
+		// Options starts closed when all it holds is the Dim checkbox; open when
+		// the action has real options to look at.
+		document.getElementById("optionsGroup").open = showPlay || showItem || ["volume-set", "volume-encoder", "status"].includes(actionKind);
+		document.getElementById("optShowVolume").hidden = actionKind !== "player-controls";
+		document.getElementById("itemTitleRow").hidden = actionKind !== "play-item";
+
+		// Play Related only offers Album / Artist.
+		document.querySelectorAll("#itemType option[data-only]").forEach((o) => { o.hidden = o.dataset.only !== actionKind; });
+	}
+
+	// ---- defaults for a freshly placed key (same as the original) ----
+	function applyDefaults() {
+		const defaults = {};
+		if (KEY_ACTIONS.includes(actionKind)) defaults.disableWhenUnavailable = true;
+		if (TEXT_ACTIONS.includes(actionKind)) defaults.textFont = "condensed";
+		if (actionKind === "play-pause") Object.assign(defaults, { showCoverArt: true, showArtistTrack: true, showProgressBar: true, showSeekPosition: true });
+		if (actionKind === "play-item") Object.assign(defaults, { itemType: "playlists", itemAction: "Play Now" });
+		if (actionKind === "play-this") Object.assign(defaults, { itemType: "artists", itemAction: "Shuffle" });
+		if (actionKind === "volume-set") Object.assign(defaults, { showCurrentVolume: false });
+		if (DIAL_ACTIONS.includes(actionKind)) Object.assign(defaults, { showAlbumArt: false, showLogo: true, albumArtTransparency: 50, uiTransparency: 100, titleMode: "output", textColor: "#ffffff", barColor: "#ffffff", progressBarMode: "off", showVolume: true });
+		if (actionKind === "volume-encoder") defaults.buttonPressMode = "mute";
+
+		let changed = false;
+		for (const k of Object.keys(defaults)) {
+			if (settings[k] === undefined) { settings[k] = defaults[k]; changed = true; }
+		}
+		// New key with no output yet: start on the last output used anywhere.
+		const last = state && state.global && state.global.lastOutputName;
+		if ((KEY_ACTIONS.includes(actionKind) || DIAL_ACTIONS.includes(actionKind)) && !settings.outputId && !settings.outputName && last) {
+			const match = (state.outputs || []).find((o) => o.name === last);
+			if (match) { settings.outputId = match.id; settings.outputName = match.name; changed = true; }
+		}
+		if (changed) saveSettings();
+	}
+
+	// ---- controls -> settings ----
+	function bindControls() {
+		document.querySelectorAll("[data-setting]").forEach((el) => {
+			const key = el.dataset.setting;
+			if (el.classList.contains("seg")) {
+				el.querySelectorAll("input[type=radio]").forEach((r) => r.addEventListener("change", () => {
+					settings[key] = r.value; saveSettings(); renderSettings();
+				}));
+			} else if (el.type === "checkbox") {
+				el.addEventListener("change", () => { settings[key] = el.checked; saveSettings(); });
+			} else if (el.type === "range") {
+				el.addEventListener("input", () => { el.nextElementSibling.textContent = el.value; });
+				el.addEventListener("change", () => { settings[key] = Number(el.value); saveSettings(); });
+			} else if (el.type === "number") {
+				el.addEventListener("change", () => { settings[key] = el.value === "" ? undefined : Number(el.value); saveSettings(); });
+			} else if (el.type === "color") {
+				el.addEventListener("change", () => { settings[key] = el.value; saveSettings(); });
+			} else if (el.tagName === "SELECT") {
+				el.addEventListener("change", () => {
+					settings[key] = el.value; saveSettings();
+					if (key === "itemType") applyItemActionRules(true);
+				});
+			} else {
+				el.addEventListener("change", () => { settings[key] = el.value; saveSettings(); });
+			}
+		});
+
+		// Global: icon style + color
+		document.querySelectorAll("#iconStyleSeg input").forEach((r) => r.addEventListener("change", () => {
+			setGlobal({ iconStyle: r.value }); renderIconStyle();
+		}));
+		document.getElementById("iconColor").addEventListener("change", (e) => setGlobal({ customColor: e.target.value }));
+
+		document.getElementById("manualBtn").addEventListener("click", () => {
+			manualOpen = !manualOpen; manualNote = "";
+			renderManual();
+			if (manualOpen) document.getElementById("manualHost").focus();
+		});
+		document.getElementById("manualGo").addEventListener("click", submitManual);
+		document.getElementById("toastedBtn").addEventListener("click", (e) => sendToPlugin({ type: e.currentTarget.dataset.act }));
+		document.getElementById("manualHost").addEventListener("keydown", (e) => { if (e.key === "Enter") submitManual(); });
+		document.getElementById("manualPort").addEventListener("keydown", (e) => { if (e.key === "Enter") submitManual(); });
+		document.getElementById("rescan").addEventListener("click", (e) => {
+			const btn = e.currentTarget;
+			btn.disabled = true; btn.textContent = "Scanning…";
+			sendToPlugin({ type: "rescan" });
+			setTimeout(() => { btn.disabled = false; btn.textContent = "↻ Rescan for Cores"; sendToPlugin({ type: "getState" }); }, 1500);
+		});
+	}
+
+	// Which Item actions make sense for an item type (from the original).
+	function applyItemActionRules(resetValue) {
+		const type = settings.itemType || "playlists";
+		const allowed = {
+			playlists: ["Play Now", "Shuffle", "Add Next", "Queue"],
+			albums: ["Play Now", "Add Next", "Queue", "Start Radio"],
+			artists: ["Shuffle", "Start Radio"], composers: ["Shuffle", "Start Radio"],
+			genres: ["Shuffle", "Start Radio"], tags: ["Shuffle", "Start Radio"],
+			internet_radio: [],
+		}[type] || [];
+		const sel = document.getElementById("itemAction");
+		document.getElementById("itemActionRow").hidden = allowed.length === 0;
+		[...sel.options].forEach((o) => { o.hidden = !allowed.includes(o.value); });
+		if (allowed.length && (resetValue || !allowed.includes(settings.itemAction))) {
+			settings.itemAction = allowed[0]; saveSettings();
+		}
+		sel.value = settings.itemAction || allowed[0] || "";
+	}
+
+	// ---- settings -> controls ----
+	function renderSettings() {
+		document.getElementById("briefFont").textContent = settings.textFont === "classic" ? "Classic" : "Condensed";
+		document.querySelectorAll("[data-setting]").forEach((el) => {
+			const key = el.dataset.setting;
+			const v = settings[key];
+			if (el.classList.contains("seg")) {
+				el.querySelectorAll("label").forEach((l) => {
+					const r = l.querySelector("input");
+					r.checked = r.value === String(v);
+					l.classList.toggle("on", r.checked);
+				});
+			} else if (el.type === "checkbox") {
+				el.checked = v === true;
+			} else if (el.type === "range") {
+				el.value = v !== undefined ? v : Number(el.getAttribute("value") || 0);
+				el.nextElementSibling.textContent = el.value;
+			} else if (v !== undefined && v !== null) {
+				el.value = v;
+			} else if (el.type !== "color") {
+				el.value = "";
+			}
+		});
+		if (actionKind === "play-item" || actionKind === "play-this") applyItemActionRules(false);
+	}
+
+	function renderIconStyle() {
+		const g = (state && state.global) || {};
+		const style = g.iconStyle || "ledGrid";
+		document.querySelectorAll("#iconStyleSeg label").forEach((l) => {
+			const r = l.querySelector("input");
+			r.checked = r.value === style; l.classList.toggle("on", r.checked);
+		});
+		document.getElementById("iconColor").value = g.customColor || "#ffffff";
+		document.getElementById("colorRow").classList.toggle("disabled", style === "classic");
+		document.getElementById("briefIcon").textContent = { ledGrid: "LED Grid", led: "LED", classic: "Classic" }[style];
+	}
+
+	function render() {
+		renderCurrent();
+		renderToasted();
+		renderManual();
+		renderCores();
+		renderOutputs();
+		renderIconStyle();
+		renderSettings();
+	}
+
+	function renderToasted() {
+		if (document.getElementById("toastedGroup").hidden || !state) return;
+		const s = state.toasted || { phase: "not-running" };
+		const dot = document.getElementById("toastedDot"), sub = document.getElementById("toastedSub");
+		const btn = document.getElementById("toastedBtn");
+		let cls, text, brief;
+		if (s.phase === "running") {
+			cls = "green"; brief = "Running";
+			text = "Running" + (s.version ? " · v" + s.version : "") +
+				(s.roon === "connected" ? " · " + (s.core ? s.core : "connected to Roon") : s.roon ? " · not connected to Roon" : "");
+			btn.hidden = true;
+		} else if (s.phase === "not-installed") {
+			cls = "red"; text = "Not installed"; brief = "Not installed";
+			btn.hidden = false; btn.textContent = "Get it"; btn.dataset.act = "getToasted";
+		} else {
+			cls = "amber"; text = "Not running"; brief = "Not running";
+			btn.hidden = false; btn.textContent = "Launch"; btn.dataset.act = "launchToasted";
+		}
+		dot.className = "dot " + cls; sub.textContent = text;
+		document.getElementById("briefToastedDot").className = "dot " + cls;
+		document.getElementById("briefToasted").textContent = brief;
+	}
+
+	function submitManual() {
+		if (state && state.manual) {
+			// Button reads "Forget" while an address is set.
+			manualNote = ""; manualOpen = false;
+			sendToPlugin({ type: "clearManual" });
+			return;
+		}
+		const host = document.getElementById("manualHost").value.trim();
+		const portText = document.getElementById("manualPort").value.trim();
+		const port = portText === "" ? ((state && state.defaultPort) || 9330) : Number(portText);
+		if (!host) { manualNote = "Enter the Core's IP address or hostname."; renderManual(); return; }
+		const btn = document.getElementById("manualGo");
+		manualBusy = true; btn.disabled = true; btn.textContent = "Connecting…";
+		sendToPlugin({ type: "setManual", host, port });
+	}
+
+	function renderManual() {
+		const manual = state && state.manual;
+		const row = document.getElementById("manualRow"), btn = document.getElementById("manualBtn");
+		const go = document.getElementById("manualGo"), note = document.getElementById("manualNote");
+		const hostEl = document.getElementById("manualHost"), portEl = document.getElementById("manualPort");
+		row.hidden = !(manual || manualOpen);
+		btn.hidden = !!manual;
+		if (manual) {
+			hostEl.value = manual.host; portEl.value = manual.port;
+			hostEl.disabled = portEl.disabled = true;
+			go.disabled = false; go.textContent = "Forget";
+		} else {
+			hostEl.disabled = portEl.disabled = false;
+			if (!manualBusy) { go.disabled = false; go.textContent = "Connect"; }
+		}
+		if (state && state.defaultPort) portEl.placeholder = state.defaultPort;
+		note.hidden = !manualNote; note.textContent = manualNote;
+	}
+
+	function renderCurrent() {
+		const dot = document.getElementById("dot"), name = document.getElementById("coreName");
+		const sub = document.getElementById("coreSub"), hint = document.getElementById("coreHint");
+		if (!state) return;
+		const phase = state.status.phase, detail = state.status.detail || "", paired = state.pairedCore;
+		hint.hidden = true;
+		const set = (dotClass, nameText, subText) => {
+			dot.className = "dot " + dotClass; name.textContent = nameText; sub.textContent = subText;
+			document.getElementById("briefDot").className = "dot " + dotClass;
+			document.getElementById("briefCore").textContent = nameText;
+		};
+		switch (phase) {
+			case "paired": {
+				const viaManual = paired && state.manual && paired.host === state.manual.host && paired.port === state.manual.port;
+				set("green", paired ? paired.name : detail, "Connected" + (paired && paired.host ? " · " + paired.host : "") + (viaManual ? " (manual)" : "")); break;
+			}
+			case "awaiting-approval":
+				set("amber pulse", "Waiting for approval", detail);
+				hint.textContent = "In Roon, open Settings > Extensions and enable “Roon: Dialed Up”."; hint.hidden = false; break;
+			case "connecting": set("amber pulse", "Connecting…", detail); break;
+			case "heard-broadcast": set("amber pulse", "Found a Core", detail); break;
+			case "connection-closed": set("red", "Connection dropped", detail + " · retrying"); break;
+			case "unpaired": set("red", "Disconnected", detail); break;
+			case "error": set("red", "Error", detail); break;
+			default: set("pulse", "Looking for a Roon Core…", "Searching your network");
+		}
+	}
+
+	function renderCores() {
+		const host = document.getElementById("cores");
+		const cores = (state && state.cores) || [];
+		if (cores.length === 0) { host.innerHTML = '<div class="empty">No Cores found yet.</div>'; return; }
+		const phase = state.status.phase;
+		const pendingAddress = (phase === "connecting" || phase === "awaiting-approval") ? state.status.detail : null;
+		host.innerHTML = cores.map((core) => {
+			const note = switchNotes[core.id];
+			const pending = !core.inUse && pendingAddress === core.host + ":" + core.port;
+			return '<div class="core-row"><div class="info"><div class="name">' + esc(core.name) + '</div><div class="sub">' +
+				esc(core.host) + (core.version ? " · " + esc(core.version) : "") + '</div>' +
+				(note ? '<div class="note">' + esc(note) + '</div>' : "") + '</div>' +
+				(core.inUse ? '<button disabled>In use</button>' : pending ? '<button disabled>Pending</button>' :
+					'<button data-switch="' + esc(core.id) + '">Switch</button>') + '</div>';
+		}).join("");
+		host.querySelectorAll("[data-switch]").forEach((btn) => btn.addEventListener("click", () => {
+			btn.disabled = true; btn.textContent = "Switching…";
+			sendToPlugin({ type: "switchCore", coreId: btn.dataset.switch });
+		}));
+	}
+
+	const STATE_LABELS = { playing: "Playing", paused: "Paused", loading: "Loading", stopped: "Stopped" };
+
+	function renderOutputs() {
+		if (document.getElementById("outputGroup").hidden) return;
+		const host = document.getElementById("outputs");
+		const outputs = (state && state.outputs) || [];
+		const selectedId = settings.outputId;
+		const selectedName = (settings.outputName || "").toLowerCase();
+		let selected = outputs.find((o) => o.id === selectedId) ||
+			(selectedName ? outputs.find((o) => o.name.toLowerCase() === selectedName) : null);
+
+		document.getElementById("briefOutput").textContent =
+			selected ? selected.name : (settings.outputName ? settings.outputName + " (offline)" : "None");
+
+		const caution = document.getElementById("volumeCaution");
+		caution.hidden = !(selected && !selected.hasVolume && VOLUME_ACTIONS.includes(actionKind));
+
+		let rows = outputs.map((o) => {
+			const cls = "zone" + (selected && o.id === selected.id ? " selected" : "");
+			return '<div class="' + cls + '" data-output="' + esc(o.id) + '"><div class="zname">' + esc(o.name) +
+				'</div><div class="zstate ' + esc(o.state) + '">' + esc(STATE_LABELS[o.state] || o.state) + '</div></div>';
+		});
+		if (!selected && settings.outputName) {
+			rows.unshift('<div class="zone selected missing"><div class="zname">' + esc(settings.outputName) + '</div><div class="zstate">Offline</div></div>');
+		}
+		if (rows.length === 0) {
+			host.innerHTML = '<div class="zone"><div class="zname" style="color: var(--faint)">' +
+				(state && state.status.phase === "paired" ? "No outputs available." : "Outputs appear once connected to a Core.") + '</div></div>';
+			return;
+		}
+		host.innerHTML = rows.join("");
+		host.querySelectorAll("[data-output]").forEach((row) => row.addEventListener("click", () => {
+			const o = outputs.find((x) => x.id === row.dataset.output);
+			if (!o) return;
+			settings.outputId = o.id; settings.outputName = o.name;
+			saveSettings();
+			setGlobal({ lastOutputName: o.name });
+			renderOutputs();
+		}));
+	}
+
+	// Roon Core and Output stay collapsed (their headers already show the
+	// Core and the chosen output). They open themselves only when there's
+	// something to do: the Core isn't connected yet, or this key has no
+	// output picked. Decided once when the panel loads, so a manual toggle
+	// isn't undone by the next live update.
+	function autoOpenGroups() {
+		const core = document.getElementById("coreGroup");
+		if (!core.hidden) core.open = state.status.phase !== "paired";
+
+		const out = document.getElementById("outputGroup");
+		if (!out.hidden) {
+			const outputs = state.outputs || [];
+			const has = outputs.some((o) => o.id === settings.outputId) ||
+				(settings.outputName && outputs.some((o) => o.name.toLowerCase() === settings.outputName.toLowerCase()));
+			out.open = !has;
+		}
+	}
+</script>
+</body>
+</html>
