@@ -5,7 +5,7 @@ const log = streamDeck.logger.createScope("roon-toasted-link");
 
 // Roon: Toasted registers this custom URL scheme with Windows the first
 // time it's launched (its own installer/first-run step, not this plugin's
-// job). We just check whether that registration exists, so a Toaster/
+// job). We just check whether that registration exists, so a Launch App/
 // Search button press can tell "app installed, not running yet" (still
 // fine, the URL launch starts it) apart from "app never installed at all"
 // (in which case we send the person to the GitHub page instead of a URL

@@ -84,7 +84,7 @@ export async function refreshToastedStatus(): Promise<ToastedStatus> {
 }
 
 /**
- * Starts polling while at least one Toaster/Search button is on a deck;
+ * Starts polling while at least one Launch App/Search button is on a deck;
  * call the returned function when it goes away. Nothing runs otherwise.
  */
 export function watchToasted(): () => void {

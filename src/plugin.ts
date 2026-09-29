@@ -6,7 +6,7 @@ import { PlayItemAction, PlayThisAction } from "./actions/play-item-actions";
 import { SearchAction } from "./actions/search";
 import { NextAction, PauseAction, PreviousAction, StopAction, VolumeDownAction, VolumeUpAction } from "./actions/simple-actions";
 import { StatusAction } from "./actions/status";
-import { ToasterAction } from "./actions/toaster";
+import { LaunchAppAction } from "./actions/launch-app";
 import { LoopAllAction, LoopOneAction, MuteUnmuteAction, RoonRadioAction, ShuffleAction } from "./actions/toggle-actions";
 import { VolumeSetAction } from "./actions/volume-set";
 import { startGlobalSettings } from "./global-settings";
@@ -55,7 +55,7 @@ streamDeck.actions.registerAction(new VolumeEncoderAction());
 streamDeck.actions.registerAction(new PlayerControlsAction());
 
 // Roon: Toasted link-outs, and the diagnostic Status key
-streamDeck.actions.registerAction(new ToasterAction());
+streamDeck.actions.registerAction(new LaunchAppAction());
 streamDeck.actions.registerAction(new SearchAction());
 streamDeck.actions.registerAction(new StatusAction());
 

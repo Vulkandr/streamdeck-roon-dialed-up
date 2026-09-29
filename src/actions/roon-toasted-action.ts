@@ -13,7 +13,7 @@ import {
 import { getToastedStatus, onToastedStatusChanged, refreshToastedStatus, watchToasted } from "../roon-toasted-status";
 
 /**
- * Shared base for the Roon: Toasted link-out buttons (Toaster and Search).
+ * Shared base for the Roon: Toasted link-out buttons (Launch App and Search).
  * Neither talks to Roon at all, they just launch or focus the separate
  * companion app on a specific screen, or point out to its GitHub page when
  * it isn't installed yet, so unlike a normal Roon action this deliberately
@@ -32,7 +32,7 @@ export abstract class RoonToastedActionBase extends SingletonAction {
 	 */
 	protected abstract get urlScheme(): string;
 
-	/** LED icon name ("toaster" / "search"). */
+	/** LED icon name ("launch-app" / "search"). */
 	protected abstract get iconName(): string;
 
 	constructor() {

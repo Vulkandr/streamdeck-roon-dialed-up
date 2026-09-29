@@ -25,7 +25,7 @@ This started as a fork of Tomi Blinnikka's [streamdeck-roon](https://github.com/
 - Mute / Unmute
 - Roon Radio on/off
 - Connection Status (a light that shows whether the plugin is connected to your Core, with an optional Core name underneath)
-- Toaster and Search (open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted), my companion app)
+- Launch App and Search (open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted), my companion app)
 
 ### Dials (Stream Deck+)
 
@@ -66,7 +66,7 @@ Then open the **Output** section and pick the output (zone) the button should co
 
 **If your Core isn't found for whatever reason**, click **Manual** next to the Core name, enter the Core's IP address (or hostname) and port (usually `9330`), and click **Connect**. The address is remembered. The **Available Cores** list lets you switch between Cores you have enabled.
 
-**Roon: Toasted buttons.** The Toaster and Search actions open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted) (my companion app) and do nothing if it isn't installed. Their settings show whether Toasted is running, with a Launch button when it isn't. Windows only.
+**Roon: Toasted buttons.** The Launch App and Search actions open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted) (my companion app) and do nothing if it isn't installed. Their settings show whether Toasted is running, with a Launch button when it isn't. Windows only.
 
 ## Upgrading from 1.x
 
