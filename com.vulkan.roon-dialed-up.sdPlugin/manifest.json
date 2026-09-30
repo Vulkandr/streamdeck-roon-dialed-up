@@ -1,6 +1,6 @@
 {
 	"Name": "Roon: Dialed Up",
-	"Version": "2.0.1.0",
+	"Version": "2.1.0.0",
 	"Author": "Vulkandr",
 	"Actions": [
 		{
@@ -259,6 +259,33 @@
 				{
 					"Name": "Radio Off",
 					"Image": "imgs/actions/roon-radio-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				}
+			],
+			"PropertyInspectorPath": "ui/roon.html"
+		},
+		{
+			"UUID": "com.vulkan.roon-dialed-up.heart",
+			"Name": "Add to Library / Heart",
+			"Tooltip": "Adds the playing track to your library, then hearts it (experimental: uses a part of Roon not officially open to apps)",
+			"Icon": "imgs/actions/heart-action",
+			"States": [
+				{
+					"Name": "Hearted",
+					"Image": "imgs/actions/heart-on-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "In Library",
+					"Image": "imgs/actions/heart-key",
+					"TitleAlignment": "bottom",
+					"FontSize": 14
+				},
+				{
+					"Name": "Not in Library",
+					"Image": "imgs/actions/add-library-key",
 					"TitleAlignment": "bottom",
 					"FontSize": 14
 				}

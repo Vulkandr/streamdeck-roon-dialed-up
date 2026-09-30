@@ -679,7 +679,7 @@ export function startRoonConnection(): void {
 		roon = new RoonApi({
 			extension_id: "com.vulkan.roon-dialed-up",
 			display_name: "Roon: Dialed Up",
-			display_version: "2.0.1",
+			display_version: "2.1.0",
 			publisher: "Vulkandr",
 			email: "vulkandr@users.noreply.github.com",
 			website: "https://github.com/Vulkandr",

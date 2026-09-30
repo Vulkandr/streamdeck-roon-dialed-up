@@ -6,6 +6,7 @@ import { PlayItemAction, PlayThisAction } from "./actions/play-item-actions";
 import { SearchAction } from "./actions/search";
 import { NextAction, PauseAction, PreviousAction, StopAction, VolumeDownAction, VolumeUpAction } from "./actions/simple-actions";
 import { StatusAction } from "./actions/status";
+import { HeartAction } from "./actions/heart";
 import { LaunchAppAction } from "./actions/launch-app";
 import { LoopAllAction, LoopOneAction, MuteUnmuteAction, RoonRadioAction, ShuffleAction } from "./actions/toggle-actions";
 import { VolumeSetAction } from "./actions/volume-set";
@@ -49,6 +50,7 @@ streamDeck.actions.registerAction(new ShuffleAction());
 streamDeck.actions.registerAction(new LoopOneAction());
 streamDeck.actions.registerAction(new LoopAllAction());
 streamDeck.actions.registerAction(new RoonRadioAction());
+streamDeck.actions.registerAction(new HeartAction()); // experimental, own link to the Core (library-link.ts)
 
 // Dials
 streamDeck.actions.registerAction(new VolumeEncoderAction());

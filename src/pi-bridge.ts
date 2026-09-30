@@ -18,6 +18,7 @@ import {
 	switchCore,
 } from "./roon-connection";
 import { openRoonToasted, ROON_TOASTED_GITHUB_URL, ROON_TOASTED_WEBSITE_URL } from "./roon-toasted-link";
+import { getLibraryStatus, onLibraryChanged } from "./library-link";
 import { getToastedStatus, onToastedStatusChanged, refreshToastedStatus } from "./roon-toasted-status";
 
 const log = streamDeck.logger.createScope("pi-bridge");
@@ -64,6 +65,7 @@ function buildState(): JsonValue {
 			const s = getToastedStatus();
 			return { phase: s.phase, version: s.version ?? null, roon: s.roon ?? null, core: s.core ?? null };
 		})(),
+		library: (() => { const l = getLibraryStatus(); return { phase: l.phase, detail: l.detail ?? null }; })(),
 		manual: (() => { const m = getManualCore(); return m ? { host: m.host, port: m.port } : null; })(),
 		defaultPort: DEFAULT_ROON_PORT,
 		global: getPublicGlobalSettings(),
@@ -162,6 +164,7 @@ export function startPropertyInspectorBridge(): void {
 	onStatusChanged(schedulePush);
 	onCoresChanged(schedulePush);
 	onToastedStatusChanged(schedulePush);
+	onLibraryChanged(schedulePush);
 	onZonesChanged((seekOnly) => {
 		if (!seekOnly) schedulePush();
 	});

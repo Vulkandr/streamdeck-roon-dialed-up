@@ -1,6 +1,6 @@
 {
     "name": "roon-dialed-up",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "private": true,
     "scripts": {
         "build": "rollup -c",
@@ -28,6 +28,7 @@
         "node-roon-api-status": "github:roonlabs/node-roon-api-status",
         "node-roon-api-transport": "github:roonlabs/node-roon-api-transport",
         "opentype.js": "^2.0.0",
-        "pngjs": "^7.0.0"
+        "pngjs": "^7.0.0",
+        "roon-library-controls": "github:Vulkandr/roon-library-controls"
     }
 }

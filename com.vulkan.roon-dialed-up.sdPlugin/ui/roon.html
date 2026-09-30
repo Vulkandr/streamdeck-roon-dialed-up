@@ -368,6 +368,23 @@
 					</div>
 				</div>
 
+				<!-- add to library / heart -->
+				<div id="optHeart" class="stack" hidden>
+					<div class="row"><div class="rlabel">Add to Library<div class="rhint">What the "+" adds: just the song, or its whole album.</div></div></div>
+					<div class="seg" data-setting="libraryAddMode">
+						<label><input type="radio" name="libraryAddMode" value="track">Single Song</label>
+						<label><input type="radio" name="libraryAddMode" value="album">Whole Album</label>
+					</div>
+					<div class="current">
+						<div id="libraryDot" class="dot pulse"></div>
+						<div style="min-width: 0; flex: 1">
+							<div class="name">Library link</div>
+							<div id="librarySub" class="sub">Checking…</div>
+						</div>
+					</div>
+					<div class="rhint">Experimental: uses a part of Roon that isn't officially open to apps, so a Roon update may break it until the plugin catches up.</div>
+				</div>
+
 				<!-- connection status -->
 				<div id="optStatus" class="stack" hidden>
 					<label class="check"><input type="checkbox" data-setting="showName">Show Core name under the light</label>
@@ -426,7 +443,7 @@
 	let manualBusy = false;      // a Connect request is in flight
 
 	const KEY_ACTIONS = ["play-pause", "play", "pause", "play-item", "play-this", "stop", "previous", "next",
-		"volume-up", "volume-down", "volume-set", "mute-unmute", "shuffle", "loop-one", "loop-all", "roon-radio"];
+		"volume-up", "volume-down", "volume-set", "mute-unmute", "shuffle", "loop-one", "loop-all", "roon-radio", "heart"];
 	const DIAL_ACTIONS = ["volume-encoder", "player-controls"];
 	const VOLUME_ACTIONS = ["volume-up", "volume-down", "volume-set", "mute-unmute", "volume-encoder"];
 	const LINK_ACTIONS = ["launch-app", "roon-toasted-search"];
@@ -529,10 +546,11 @@
 		document.getElementById("optButtonPress").hidden = actionKind !== "volume-encoder";
 		document.getElementById("optDim").hidden = !isKey;
 		document.getElementById("optStatus").hidden = actionKind !== "status";
+		document.getElementById("optHeart").hidden = actionKind !== "heart";
 		document.getElementById("optionsGroup").hidden = !(isKey || actionKind === "volume-encoder" || actionKind === "status");
 		// Options starts closed when all it holds is the Dim checkbox; open when
 		// the action has real options to look at.
-		document.getElementById("optionsGroup").open = showPlay || showItem || ["volume-set", "volume-encoder", "status"].includes(actionKind);
+		document.getElementById("optionsGroup").open = showPlay || showItem || ["volume-set", "volume-encoder", "status", "heart"].includes(actionKind);
 		document.getElementById("optShowVolume").hidden = actionKind !== "player-controls";
 		document.getElementById("itemTitleRow").hidden = actionKind !== "play-item";
 
@@ -551,6 +569,7 @@
 		if (actionKind === "volume-set") Object.assign(defaults, { showCurrentVolume: false });
 		if (DIAL_ACTIONS.includes(actionKind)) Object.assign(defaults, { showAlbumArt: false, showLogo: true, albumArtTransparency: 50, uiTransparency: 100, titleMode: "output", textColor: "#ffffff", barColor: "#ffffff", progressBarMode: "off", showVolume: true });
 		if (actionKind === "volume-encoder") defaults.buttonPressMode = "mute";
+		if (actionKind === "heart") defaults.libraryAddMode = "track";
 
 		let changed = false;
 		for (const k of Object.keys(defaults)) {
@@ -674,12 +693,22 @@
 
 	function render() {
 		renderCurrent();
-		renderToasted();
+		renderToasted(); renderLibrary();
 		renderManual();
 		renderCores();
 		renderOutputs();
 		renderIconStyle();
 		renderSettings();
+	}
+
+	function renderLibrary() {
+		if (document.getElementById("optHeart").hidden || !state) return;
+		const l = state.library || { phase: "off" };
+		const dot = document.getElementById("libraryDot"), sub = document.getElementById("librarySub");
+		const looks = { ready: ["green", "Connected to the Core"], connecting: ["amber pulse", "Connecting…"], waiting: ["amber", "Waiting for the Roon Core"],
+			unsupported: ["red", "Not supported with this Roon version"], unavailable: ["amber", "Not connected"], off: ["", "Off"] };
+		const [cls, text] = looks[l.phase] || ["", l.phase];
+		dot.className = "dot " + cls; sub.textContent = l.detail && l.phase !== "ready" ? l.detail : text;
 	}
 
 	function renderToasted() {
