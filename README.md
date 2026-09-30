@@ -26,6 +26,7 @@ This started as a fork of Tomi Blinnikka's [streamdeck-roon](https://github.com/
 - Volume set
 - Mute / Unmute
 - Roon Radio on/off
+- Add to Library / Heart (experimental, see below): a "+" that adds the playing track to your library, then a heart to favorite it
 - Connection Status (a light that shows whether the plugin is connected to your Core, with an optional Core name underneath)
 - Launch App and Search (open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted), my companion app)
 
@@ -67,6 +68,8 @@ Open Roon, go to **Settings → Extensions**, find **Roon: Dialed Up**, and clic
 Then open the **Output** section and pick the output (zone) the button should control. Each button remembers its own output.
 
 **If your Core isn't found for whatever reason**, click **Manual** next to the Core name, enter the Core's IP address (or hostname) and port (usually `9330`), and click **Connect**. The address is remembered. The **Available Cores** list lets you switch between Cores you have enabled.
+
+**Add to Library / Heart (experimental).** One key that follows the playing track: a "+" when the track isn't in your library (press to add it: just the song, or its whole album, as set in the key's options), an outline heart once it is (press to heart it), and a filled heart when hearted (press to un-heart; it never removes anything from your library). Roon's official extension API can't do either of these, so this key talks to the Core over the protocol Roon's own apps use, through my [roon-library-controls](https://github.com/Vulkandr/roon-library-controls) package, on a separate connection the plugin opens only while such a key is placed. That part of Roon isn't officially open to apps, so a Roon update may break it until the plugin catches up; when the Core turns the plugin down, the key dims and its settings say "Not supported with this Roon version". Nothing else in the plugin depends on it.
 
 **Roon: Toasted buttons.** The Launch App and Search actions open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted) (my companion app) and do nothing if it isn't installed. Their settings show whether Toasted is running, with a Launch button when it isn't. Windows only.
 
