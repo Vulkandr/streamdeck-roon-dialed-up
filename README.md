@@ -52,9 +52,9 @@ The Roon logo isn't bundled with the plugin, to avoid shipping any copyrighted a
 
 Requires Stream Deck software 7.1 or later. The button actions work on any Stream Deck; the two Dial actions need a Stream Deck+.
 
-**Elgato Marketplace:** coming soon, this section will be updated with a link once the listing is live.
+**Elgato Marketplace:** [Roon: Dialed Up](https://marketplace.elgato.com/product/roon-dialed-up-f76699d9-4266-4d4a-ad94-eaddd148daa9). This is the easiest way to install it and keep it updated.
 
-**Manual:** build from source (see below), then double-click the resulting `com.vulkan.roon-dialed-up.sdPlugin` to install it.
+**Manual:** build from source and package it (see "Build a release package" below), then double-click the resulting `.streamDeckPlugin` file to install it.
 
 ## Configuration
 
@@ -83,7 +83,7 @@ npm install
 npm run build
 ```
 
-`npm run build` bundles the plugin into `com.vulkan.roon-dialed-up.sdPlugin/bin` and copies the Roon libraries it needs into that folder's `node_modules`. The `.sdPlugin` folder is ready to install as soon as it finishes.
+`npm run build` bundles the plugin into `com.vulkan.roon-dialed-up.sdPlugin/bin` and copies the Roon libraries it needs into that folder's `node_modules`. To try it in Stream Deck, see "Run without installing" below, or "Build a release package" to make an installer.
 
 ### Run without installing
 
