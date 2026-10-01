@@ -1,7 +1,7 @@
 import streamDeck, { action, type KeyAction, type KeyUpEvent } from "@elgato/streamdeck";
 
 import { RoonAction, type RoonKeySettings } from "./roon-action";
-import { getLibraryTrack, isLibraryReady, libraryAdd, libraryHeart, onLibraryChanged, watchLibrary } from "../library-link";
+import { getLibraryStatus, getLibraryTrack, isLibraryReady, libraryAdd, libraryHeart, onLibraryChanged, watchLibrary } from "../library-link";
 import type { RoonOutput } from "../roon-connection";
 
 const log = streamDeck.logger.createScope("heart");
@@ -38,6 +38,7 @@ export class HeartAction extends RoonAction<HeartSettings> {
 	override async onWillAppear(ev: Parameters<RoonAction<HeartSettings>["onWillAppear"]>[0]): Promise<void> {
 		if (ev.action.isKey() && !this.releaseByKey.has(ev.action.id)) {
 			this.releaseByKey.set(ev.action.id, watchLibrary());
+			log.debug(`key appeared, library link is ${getLibraryStatus().phase}`);
 		}
 		await super.onWillAppear(ev);
 	}

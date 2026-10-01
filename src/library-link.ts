@@ -30,6 +30,10 @@ export interface LibraryStatus {
 
 const RETRY_DELAYS_MS = [5000, 15000, 60000, 300000];
 const REFRESH_AFTER_MS = 24 * 60 * 60 * 1000;
+// Changing pages removes every key on the old page before showing the new one,
+// so the link must outlive a moment with no key on screen. It stops only after
+// no key has been visible for this long.
+const IDLE_STOP_MS = 10 * 60 * 1000;
 
 let watchers = 0;
 let client: RoonLibraryClient | null = null;
@@ -38,6 +42,7 @@ let generation = 0;
 let attempt = 0;
 let retryTimer: NodeJS.Timeout | null = null;
 let refreshTimer: NodeJS.Timeout | null = null;
+let idleTimer: NodeJS.Timeout | null = null;
 let linkedTo = ""; // "host|coreId" of the session in progress
 const listeners = new Set<() => void>();
 
@@ -90,7 +95,12 @@ export async function libraryAdd(zoneId: string, mode: AddMode): Promise<TrackIn
  */
 export function watchLibrary(): () => void {
 	watchers++;
+	if (idleTimer) {
+		clearTimeout(idleTimer);
+		idleTimer = null;
+	}
 	if (watchers === 1) {
+		// Starts the link, or does nothing when it is still up from before (a page change).
 		reconsider();
 	}
 	let released = false;
@@ -100,8 +110,14 @@ export function watchLibrary(): () => void {
 		watchers--;
 		if (watchers <= 0) {
 			watchers = 0;
-			stop();
-			setStatus({ phase: "off" });
+			if (idleTimer) clearTimeout(idleTimer);
+			idleTimer = setTimeout(() => {
+				idleTimer = null;
+				if (watchers > 0) return;
+				log.info("no library key on screen for a while, closing the link");
+				stop();
+				setStatus({ phase: "off" });
+			}, IDLE_STOP_MS);
 		}
 	};
 }
