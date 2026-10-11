@@ -25,6 +25,11 @@ export interface KeyImageSpec {
 	lines?: TextLine[];
 	/** 0..100; draws the original plugin's bar near the bottom. */
 	progressPercent?: number;
+	/**
+	 * Draws a plain line where the progress bar would be. Used when the bar
+	 * is off but times are shown above and below it, so the layout holds.
+	 */
+	divider?: boolean;
 	/** Typeface for `lines` (the key's Text Font setting). */
 	font?: TextFont;
 }
@@ -106,6 +111,9 @@ export function composeKeyImage(spec: KeyImageSpec): string {
 		const pct = Math.max(0, Math.min(100, spec.progressPercent));
 		body += `<rect x="${barLeft}" y="${barTop}" width="${barWidth}" height="${barHeight}" fill="rgba(0,0,0,0.55)"/>`;
 		body += `<rect x="${barLeft}" y="${barTop}" width="${(barWidth * pct) / 100}" height="${barHeight}" fill="#ffffff"/>`;
+	} else if (spec.divider) {
+		body += `<rect x="10" y="${CANVAS - 50}" width="${CANVAS - 20}" height="5" fill="rgba(0,0,0,0.55)"/>`;
+		body += `<rect x="10" y="${CANVAS - 48}" width="${CANVAS - 20}" height="1" fill="rgba(255,255,255,0.7)"/>`;
 	}
 
 	return svgDataUri(wrapSvg(body));

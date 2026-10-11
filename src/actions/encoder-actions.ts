@@ -23,7 +23,8 @@ import { IconCells } from "../icons/icon-cells";
 import { renderIconPng } from "../icons/icon-renderer";
 import { renderStripText, svgToPng } from "../icons/raster";
 import { textFontOf } from "../icons/text-paths";
-import { findOutput, getImage, getTransport, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
+import { keepLibraryWarm } from "../library-link";
+import { checkOutput, findOutput, forgetOutputCheck, getImage, getTransport, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
 
 const log = streamDeck.logger.createScope("encoder");
 const P = "com.vulkan.roon-dialed-up";
@@ -67,6 +68,8 @@ interface DialState {
 @action({ UUID: `${P}.volume-encoder` })
 export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 	protected readonly dials = new Map<string, DialState>();
+	/** Each dial on screen helps keep the library link warm (see keepLibraryWarm). */
+	private readonly warmByDial = new Map<string, () => void>();
 	private volumeDisabledIcon = VolumeDisabledEncoderFeedback;
 
 	constructor() {
@@ -108,17 +111,30 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 
 	override async onWillAppear(ev: WillAppearEvent<EncoderSettings>): Promise<void> {
 		if (!ev.action.isDial()) return;
+		if (!this.warmByDial.has(ev.action.id)) this.warmByDial.set(ev.action.id, keepLibraryWarm());
 		const state = this.stateFor(ev.action.id, ev.payload.settings);
 		state.layoutMode = null;
 		// The native Title field has no effect on this action's display, so
 		// it's set to a plain label rather than left looking editable.
 		await ev.action.setTitle("Disabled");
 		await this.updateTriggerDescription(ev.action, state.settings);
+		await this.checkSavedOutput(ev.action, state);
 		await this.render(ev.action, state, false);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<EncoderSettings>): void {
 		this.dials.delete(ev.action.id);
+		this.warmByDial.get(ev.action.id)?.();
+		this.warmByDial.delete(ev.action.id);
+		forgetOutputCheck(ev.action.id);
+	}
+
+	/** Same safety nets as the keys (see checkOutput in roon-connection.ts). */
+	protected async checkSavedOutput(dial: DialAction<EncoderSettings>, state: DialState): Promise<void> {
+		const check = checkOutput(dial.id, state.settings.outputId, state.settings.outputName);
+		if (!check.update) return;
+		state.settings = { ...state.settings, ...check.update };
+		await dial.setSettings(state.settings);
 	}
 
 	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<EncoderSettings>): Promise<void> {
@@ -135,7 +151,9 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 		for (const a of this.actions) {
 			if (!a.isDial()) continue;
 			const state = this.dials.get(a.id);
-			if (state) void this.render(a, state, seekOnly);
+			if (!state) continue;
+			if (seekOnly) void this.render(a, state, true);
+			else void this.checkSavedOutput(a, state).then(() => this.render(a, state, false));
 		}
 	}
 

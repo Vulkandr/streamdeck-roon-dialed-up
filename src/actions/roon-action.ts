@@ -10,8 +10,9 @@ import streamDeck, {
 import type { JsonObject } from "@elgato/utils";
 
 import { getIconColor, getIconStyle, onGlobalSettingsChanged } from "../global-settings";
+import { keepLibraryWarm } from "../library-link";
 import { composeKeyImage, styledIconBody } from "../icons/key-image";
-import { findOutput, getTransport, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
+import { checkOutput, findOutput, forgetOutputCheck, getTransport, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
 
 const log = streamDeck.logger.createScope("roon-action");
 
@@ -37,6 +38,8 @@ export interface RoonKeySettings extends JsonObject {
  */
 export abstract class RoonAction<TSettings extends RoonKeySettings = RoonKeySettings> extends SingletonAction<TSettings> {
 	protected readonly settingsByKey = new Map<string, TSettings>();
+	/** Each key on screen helps keep the library link warm (see keepLibraryWarm). */
+	private readonly warmByKey = new Map<string, () => void>();
 
 	constructor() {
 		super();
@@ -63,13 +66,33 @@ export abstract class RoonAction<TSettings extends RoonKeySettings = RoonKeySett
 
 	override async onWillAppear(ev: WillAppearEvent<TSettings>): Promise<void> {
 		if (!ev.action.isKey()) return;
+		if (!this.warmByKey.has(ev.action.id)) this.warmByKey.set(ev.action.id, keepLibraryWarm());
 		this.settingsByKey.set(ev.action.id, ev.payload.settings);
-		await this.render(ev.action, ev.payload.settings);
+		const settings = await this.checkSavedOutput(ev.action, ev.payload.settings);
+		await this.render(ev.action, settings);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent<TSettings>): void {
 		this.settingsByKey.delete(ev.action.id);
+		this.warmByKey.get(ev.action.id)?.();
+		this.warmByKey.delete(ev.action.id);
+		forgetOutputCheck(ev.action.id);
 		this.onKeyRemoved(ev.action.id);
+	}
+
+	/**
+	 * Safety nets for the key's chosen output (see checkOutput): picks one
+	 * when none is chosen, saves a changed id, logs a missing output. Returns
+	 * the settings to render with (updated when something was saved).
+	 */
+	protected async checkSavedOutput(action: KeyAction<TSettings>, settings: TSettings): Promise<TSettings> {
+		const check = checkOutput(action.id, settings.outputId, settings.outputName);
+		if (!check.update) return settings;
+		const next = { ...settings, ...check.update } as TSettings;
+		this.settingsByKey.set(action.id, next);
+		this.onSettingsUpdated(action.id, next);
+		await action.setSettings(next);
+		return next;
 	}
 
 	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<TSettings>): Promise<void> {
@@ -89,7 +112,8 @@ export abstract class RoonAction<TSettings extends RoonKeySettings = RoonKeySett
 	protected refreshAll(): void {
 		for (const action of this.actions) {
 			if (action.isKey()) {
-				void this.render(action, this.settingsByKey.get(action.id) ?? ({} as TSettings));
+				const settings = this.settingsByKey.get(action.id) ?? ({} as TSettings);
+				void this.checkSavedOutput(action, settings).then((s) => this.render(action, s));
 			}
 		}
 	}
