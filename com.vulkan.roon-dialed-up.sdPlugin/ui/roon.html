@@ -53,6 +53,36 @@
 		gap: 10px;
 	}
 
+	/* ---- tabs (one panel at a time, like Zonekeeper) ---- */
+	.tabbed summary { display: none; }
+	.tabbed details:not([open]) { display: none; }
+	.tabs { display: flex; gap: 6px; }
+	.tab {
+		flex: 1; padding: 8px 4px; font: inherit; font-weight: 650; cursor: pointer; white-space: nowrap;
+		color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+	}
+	.tab:hover { background: var(--card-hover); color: var(--text); }
+	.tab.on { color: var(--text); border-color: #6a6a6a; box-shadow: inset 0 -3px 0 var(--text); }
+	.tabbed .body { border-top: 0; }
+	.tab .dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; vertical-align: 1px; }
+	.label.first { margin-top: 0; }
+	/* Sub-sections inside a tab: a rule between them, none above the first visible one (set by syncTabs) */
+	.section { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
+	.section.first { margin-top: 0; padding-top: 0; border-top: 0; }
+	.section > .label:first-child { margin-top: 0; }
+	.label.labelrow { display: flex; align-items: center; }
+	.colorbox {
+		margin-left: auto; display: flex; align-items: center; gap: 10px;
+		padding: 2px 4px 2px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--input);
+		color: var(--text); font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none;
+	}
+	.colorbox input[type="color"] { width: 26px; height: 16px; }
+	/* The Color box is taller than the heading text; keep the heading's rhythm by overlapping its extra height */
+	.label.labelrow { margin-top: -6px; margin-bottom: 0; }
+	/* Hint text sits right under its section title */
+	.label + .row { padding-top: 0; margin-top: -6px; }
+	.row .rhint { margin-top: 0; }
+	.stack > .label { margin-bottom: -2px; }
 	/* ---- collapsible groups ---- */
 	details {
 		border: 1px solid var(--border);
@@ -118,6 +148,13 @@
 		margin: 14px 0 6px 0;
 	}
 	.current .small { flex: none; padding: 4px 10px; font-size: 12px; margin-top: 1px; }
+	/* Tighter stacking inside the Roon Core section */
+	#coreGroup .label:not(:first-child) { margin: 8px 0 2px 0; }
+	#coreGroup .core-row { padding: 4px 0; }
+	.current .btns { display: flex; gap: 6px; flex: none; }
+	/* The Core card: tighter spacing between the connected Core, the list heading and the list */
+	#coreGroup .label { margin: 8px 0 2px 0; }
+	#coreGroup .core-row { padding: 4px 0; }
 	.manual { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
 	.manual input[type="text"] { flex: 1; min-width: 0; }
 	.manual input[type="number"] { width: 68px; flex: none; -moz-appearance: textfield; }
@@ -144,7 +181,7 @@
 	.empty { color: var(--faint); font-size: 12px; padding: 6px 0; }
 
 	/* ---- output list ---- */
-	.list { max-height: 180px; overflow-y: auto; margin: -12px; }
+	.list { max-height: 180px; overflow-y: auto; margin: 0 -12px; }
 	.list::-webkit-scrollbar { width: 8px; }
 	.list::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
 	.zone {
@@ -188,11 +225,16 @@
 	input:checked { border-color: #8a8a8a; }
 
 	.seg { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
-	.seg label { flex: 1; text-align: center; padding: 6px 4px; cursor: pointer; background: var(--input); font-size: 12.5px; white-space: nowrap; }
+	.seg label { flex: 1; text-align: center; padding: 4px 4px; cursor: pointer; background: var(--input); font-size: 12.5px; white-space: nowrap; }
+	/* A choice row sits close under its title */
+	.row + .seg { margin-top: -6px; }
 	.seg label + label { border-left: 1px solid var(--border); }
 	.seg input { display: none; }
 	.seg label.on { background: var(--selected); color: var(--text); font-weight: 600; }
 	.seg label:hover:not(.on) { background: var(--card-hover); }
+	.checkrow { display: flex; align-items: center; gap: 10px; }
+	.checkrow .check { flex: 1; }
+	.seg.small label { padding: 3px 8px; font-size: 11.5px; }
 
 	input[type="text"], input[type="number"], select {
 		font: inherit; color: var(--text); background: var(--input);
@@ -214,6 +256,17 @@
 	input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #555; border-radius: 2px; margin: 8px 0; }
 	input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--text); cursor: pointer; }
 	.range { display: flex; align-items: center; gap: 10px; }
+	/* Two settings side by side, to keep the panel short */
+	.pair { display: flex; gap: 14px; }
+	.pair .cell { flex: 1; min-width: 0; }
+	.pair .cell .rlabel { font-size: 12.5px; }
+	.pair .range { gap: 6px; }
+	.pair .range input[type="range"] { margin: 6px 0; }
+	.pair .range .val { width: 26px; font-size: 11px; }
+	/* Left cell's number sits before its bar, so it can't be read as the right cell's */
+	.pair .cell:first-child .range .val { order: -1; text-align: left; }
+	/* Color pickers right after their label, not pushed to the far edge */
+	.pair .cell.row .rlabel { flex: none; }
 	.range .val { width: 34px; text-align: right; color: var(--muted); font-size: 12px; }
 
 	.disabled { opacity: 0.4; pointer-events: none; }
@@ -221,18 +274,24 @@
 </style>
 </head>
 <body>
-	<div class="panel">
+	<div class="panel tabbed">
 		<div id="experimentalNote" class="warn" hidden>
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
 			<span>(Experimental) May break with a Roon update, not guaranteed to work!</span>
 		</div>
-		<details id="coreGroup">
-			<summary>
-				<span class="chev"></span>
-				<span class="title">Roon Core</span>
-				<span class="brief"><span id="briefDot" class="dot pulse"></span><span id="briefCore">Searching…</span></span>
-			</summary>
+		<!-- Summary text the script still fills in; the tabs hide the summaries themselves -->
+		<div hidden><span id="briefCore"></span><span id="briefOutput"></span><span id="briefIcon"></span><span id="briefFont"></span></div>
+		<div class="tabs" id="tabs">
+			<button class="tab" data-group="connectionGroup"><span id="briefDot" class="dot pulse"></span>Connection</button>
+			<button class="tab" data-group="toastedGroup"><span id="briefToastedDot" class="dot pulse"></span>Roon: Toasted</button>
+			<button class="tab" data-group="screenGroup">Screen</button>
+			<button class="tab" data-group="optionsGroup">Options</button>
+		</div>
+		<details id="connectionGroup" open>
+			<summary><span class="title">Connection</span></summary>
 			<div class="body">
+				<div id="coreGroup" class="section">
+					<div class="label">Roon Core</div>
 				<div class="current">
 					<div id="dot" class="dot pulse"></div>
 					<div style="min-width: 0; flex: 1">
@@ -240,7 +299,10 @@
 						<div id="coreSub" class="sub">Starting</div>
 						<div id="coreHint" class="hint" hidden></div>
 					</div>
-					<button id="manualBtn" class="small" title="Connect to a Core by address">Manual</button>
+					<div class="btns">
+						<button id="manualBtn" class="small" title="Connect to a Core by address">Manual</button>
+						<button id="rescan" class="small" title="Look for Cores on the network again">Rescan</button>
+					</div>
 				</div>
 				<div id="manualRow" class="manual" hidden>
 					<input type="text" id="manualHost" placeholder="Core IP or hostname" spellcheck="false" autocomplete="off">
@@ -250,15 +312,19 @@
 				<div id="manualNote" class="manual-note" hidden></div>
 				<div class="label">Available Cores</div>
 				<div id="cores"></div>
-				<button id="rescan" class="wide">↻ Rescan for Cores</button>
+			</div>
+				<div id="outputGroup" class="section">
+					<div class="label">Output</div>
+				<div id="outputs" class="list"></div>
+				<div id="volumeCaution" class="caution" hidden>This output has a fixed volume, so this key can't change it.</div>
+			</div>
 			</div>
 		</details>
-
-		<details id="toastedGroup" open hidden>
+		<details id="toastedGroup" hidden>
 			<summary>
 				<span class="chev"></span>
 				<span class="title">Roon: Toasted</span>
-				<span class="brief"><span id="briefToastedDot" class="dot pulse"></span><span id="briefToasted">Checking…</span></span>
+				<span class="brief"><span id="briefToasted">Checking…</span></span>
 			</summary>
 			<div class="body">
 				<div class="current">
@@ -271,63 +337,79 @@
 				</div>
 			</div>
 		</details>
+		<details id="screenGroup" hidden>
+			<summary><span class="title">Screen</span></summary>
+			<div class="body stack">
+				<label class="check" id="optShowVolume" hidden><input type="checkbox" data-setting="showVolume">Show Volume</label>
+				<label class="check"><input type="checkbox" data-setting="showAlbumArt">Show Album Art</label>
+				<label class="check"><input type="checkbox" data-setting="showLogo">Show Logo</label>
 
-		<details id="outputGroup">
-			<summary>
-				<span class="chev"></span>
-				<span class="title">Output</span>
-				<span class="brief"><span id="briefOutput">None</span></span>
-			</summary>
-			<div class="body">
-				<div id="outputs" class="list"></div>
-				<div id="volumeCaution" class="caution" hidden>This output has a fixed volume, so this key can't change it.</div>
+				<div class="row"><div class="rlabel">Title</div></div>
+				<div class="seg" data-setting="titleMode">
+					<label><input type="radio" name="titleMode" value="off">Off</label>
+					<label><input type="radio" name="titleMode" value="output">Output</label>
+					<label><input type="radio" name="titleMode" value="track">Artist - Song</label>
+				</div>
+
+				<div class="row"><div class="rlabel">Progress bar</div></div>
+				<div class="seg" data-setting="progressBarMode">
+					<label><input type="radio" name="progressBarMode" value="off">Off</label>
+					<label><input type="radio" name="progressBarMode" value="replace">Replace Volume</label>
+					<label><input type="radio" name="progressBarMode" value="separate">Separate Row</label>
+				</div>
+
+				<div class="pair">
+					<div class="cell">
+						<div class="rlabel">Album art transparency</div>
+						<div class="range"><input type="range" min="0" max="100" step="10" value="50" data-setting="albumArtTransparency"><span class="val"></span></div>
+					</div>
+					<div class="cell">
+						<div class="rlabel">UI transparency</div>
+						<div class="range"><input type="range" min="0" max="100" step="10" value="100" data-setting="uiTransparency"><span class="val"></span></div>
+					</div>
+				</div>
+				<div class="pair">
+					<div class="cell row"><div class="rlabel">Text color</div><input type="color" data-setting="textColor" value="#ffffff"></div>
+					<div class="cell row"><div class="rlabel">Bar color</div><input type="color" data-setting="barColor" value="#ffffff"></div>
+				</div>
 			</div>
 		</details>
-
-		<details id="iconGroup" open>
-			<summary>
-				<span class="chev"></span>
-				<span class="title">Icon Style</span>
-				<span class="brief"><span id="briefIcon">LED Grid</span></span>
-			</summary>
+		<details id="optionsGroup">
+			<summary><span class="title">Options</span></summary>
 			<div class="body stack">
-				<div class="row"><div class="rlabel">Style<div class="rhint">Applies to every key.</div></div></div>
+				<div id="iconGroup" class="stack section">
+					<div class="label labelrow"><span>Icon Style</span><span class="colorbox" id="colorRow"><span>Color</span><input type="color" id="iconColor" value="#ffffff" title="Icon color"></span></div>
+				<div class="row"><div class="rlabel"><div class="rhint">Applies to every key.</div></div></div>
 				<div class="seg" id="iconStyleSeg">
 					<label><input type="radio" name="iconStyle" value="ledGrid">LED Grid</label>
 					<label><input type="radio" name="iconStyle" value="led">LED</label>
 					<label><input type="radio" name="iconStyle" value="classic">Classic</label>
 				</div>
-				<div class="row" id="colorRow"><div class="rlabel">Color</div><input type="color" id="iconColor" value="#ffffff"></div>
 			</div>
-		</details>
-
-		<details id="fontGroup" open>
-			<summary>
-				<span class="chev"></span>
-				<span class="title">Text Font</span>
-				<span class="brief"><span id="briefFont">Condensed</span></span>
-			</summary>
-			<div class="body stack">
-				<div class="row"><div class="rlabel">Font<div class="rhint">For this key only. Classic is the plugin's original font; Condensed fits more text per line.</div></div></div>
+				<div id="fontGroup" class="stack section">
+					<div class="label">Text Font</div>
+				<div class="row"><div class="rlabel"><div class="rhint">For this key only.</div></div></div>
 				<div class="seg" data-setting="textFont">
 					<label><input type="radio" name="textFont" value="classic">Classic</label>
 					<label><input type="radio" name="textFont" value="condensed">Condensed</label>
 				</div>
 			</div>
-		</details>
-
-		<details id="optionsGroup" open>
-			<summary>
-				<span class="chev"></span>
-				<span class="title">Options</span>
-			</summary>
-			<div class="body stack">
+				<div id="optMain" class="stack section">
+					<div class="label" id="optMainLabel">This key</div>
 				<!-- play / play-pause -->
 				<div id="optPlay" class="stack" hidden>
+					<label class="check"><input type="checkbox" data-setting="showIcon">Show Icon</label>
 					<label class="check"><input type="checkbox" data-setting="showCoverArt">Show Album Art</label>
 					<label class="check"><input type="checkbox" data-setting="showArtistTrack">Show Artist/Track</label>
 					<label class="check"><input type="checkbox" data-setting="showProgressBar">Show Progress Bar</label>
-					<label class="check"><input type="checkbox" data-setting="showSeekPosition">Show Elapsed Time</label>
+					<div class="checkrow">
+						<label class="check"><input type="checkbox" data-setting="showSeekPosition">Show Track Time</label>
+						<div class="seg small" data-setting="trackTimeMode">
+							<label><input type="radio" name="trackTimeMode" value="elapsed">Elapsed</label>
+							<label><input type="radio" name="trackTimeMode" value="remaining">Remaining</label>
+						</div>
+					</div>
+					<label class="check"><input type="checkbox" data-setting="showTotalTime">Show Total Time</label>
 				</div>
 
 				<!-- play-item / play-this -->
@@ -398,39 +480,6 @@
 				<!-- all keys -->
 				<label class="check" id="optDim" hidden><input type="checkbox" data-setting="disableWhenUnavailable">Dim when action not available</label>
 			</div>
-		</details>
-
-		<details id="screenGroup" open hidden>
-			<summary>
-				<span class="chev"></span>
-				<span class="title">Screen</span>
-			</summary>
-			<div class="body stack">
-				<label class="check" id="optShowVolume" hidden><input type="checkbox" data-setting="showVolume">Show Volume</label>
-				<label class="check"><input type="checkbox" data-setting="showAlbumArt">Show Album Art</label>
-				<label class="check"><input type="checkbox" data-setting="showLogo">Show Logo</label>
-
-				<div class="row"><div class="rlabel">Title</div></div>
-				<div class="seg" data-setting="titleMode">
-					<label><input type="radio" name="titleMode" value="off">Off</label>
-					<label><input type="radio" name="titleMode" value="output">Output</label>
-					<label><input type="radio" name="titleMode" value="track">Artist - Song</label>
-				</div>
-
-				<div class="row"><div class="rlabel">Progress bar</div></div>
-				<div class="seg" data-setting="progressBarMode">
-					<label><input type="radio" name="progressBarMode" value="off">Off</label>
-					<label><input type="radio" name="progressBarMode" value="replace">Replace Volume</label>
-					<label><input type="radio" name="progressBarMode" value="separate">Separate Row</label>
-				</div>
-
-				<div class="row"><div class="rlabel">Album art transparency</div></div>
-				<div class="range"><input type="range" min="0" max="100" step="10" value="50" data-setting="albumArtTransparency"><span class="val"></span></div>
-				<div class="row"><div class="rlabel">UI transparency</div></div>
-				<div class="range"><input type="range" min="0" max="100" step="10" value="100" data-setting="uiTransparency"><span class="val"></span></div>
-
-				<div class="row"><div class="rlabel">Text color</div><input type="color" data-setting="textColor" value="#ffffff"></div>
-				<div class="row"><div class="rlabel">Bar color</div><input type="color" data-setting="barColor" value="#ffffff"></div>
 			</div>
 		</details>
 	</div>
@@ -553,10 +602,12 @@
 		document.getElementById("optStatus").hidden = actionKind !== "status";
 		document.getElementById("optHeart").hidden = actionKind !== "heart";
 		document.getElementById("experimentalNote").hidden = actionKind !== "heart";
-		document.getElementById("optionsGroup").hidden = !(isKey || actionKind === "volume-encoder" || actionKind === "status");
-		// Options starts closed when all it holds is the Dim checkbox; open when
-		// the action has real options to look at.
-		document.getElementById("optionsGroup").open = showPlay || showItem || ["volume-set", "volume-encoder", "status", "heart"].includes(actionKind);
+		document.getElementById("optMain").hidden = !(isKey || actionKind === "volume-encoder" || actionKind === "status");
+		document.getElementById("connectionGroup").hidden = !isRoon && actionKind !== "status";
+		document.getElementById("optionsGroup").hidden = !(isKey || isLink || actionKind === "volume-encoder" || actionKind === "status" || TEXT_ACTIONS.includes(actionKind));
+		document.getElementById("optMainLabel").hidden = !(isKey || isLink || TEXT_ACTIONS.includes(actionKind));
+		document.getElementById("optMainLabel").textContent = isDial ? "This dial" : "This key";
+		syncTabs();
 		document.getElementById("optShowVolume").hidden = actionKind !== "player-controls";
 		document.getElementById("itemTitleRow").hidden = actionKind !== "play-item";
 
@@ -569,7 +620,7 @@
 		const defaults = {};
 		if (KEY_ACTIONS.includes(actionKind)) defaults.disableWhenUnavailable = true;
 		if (TEXT_ACTIONS.includes(actionKind)) defaults.textFont = "condensed";
-		if (actionKind === "play-pause") Object.assign(defaults, { showCoverArt: true, showArtistTrack: true, showProgressBar: true, showSeekPosition: true });
+		if (actionKind === "play-pause") Object.assign(defaults, { showIcon: true, showCoverArt: true, showArtistTrack: true, showProgressBar: true, showSeekPosition: true, trackTimeMode: "elapsed", showTotalTime: false });
 		if (actionKind === "play-item") Object.assign(defaults, { itemType: "playlists", itemAction: "Play Now" });
 		if (actionKind === "play-this") Object.assign(defaults, { itemType: "artists", itemAction: "Shuffle" });
 		if (actionKind === "volume-set") Object.assign(defaults, { showCurrentVolume: false });
@@ -636,7 +687,7 @@
 			const btn = e.currentTarget;
 			btn.disabled = true; btn.textContent = "Scanning…";
 			sendToPlugin({ type: "rescan" });
-			setTimeout(() => { btn.disabled = false; btn.textContent = "↻ Rescan for Cores"; sendToPlugin({ type: "getState" }); }, 1500);
+			setTimeout(() => { btn.disabled = false; btn.textContent = "Rescan"; sendToPlugin({ type: "getState" }); }, 1500);
 		});
 	}
 
@@ -865,22 +916,49 @@
 		}));
 	}
 
-	// Roon Core and Output stay collapsed (their headers already show the
-	// Core and the chosen output). They open themselves only when there's
-	// something to do: the Core isn't connected yet, or this key has no
-	// output picked. Decided once when the panel loads, so a manual toggle
-	// isn't undone by the next live update.
-	function autoOpenGroups() {
-		const core = document.getElementById("coreGroup");
-		if (!core.hidden) core.open = state.status.phase !== "paired";
-
-		const out = document.getElementById("outputGroup");
-		if (!out.hidden) {
-			const outputs = state.outputs || [];
-			const has = outputs.some((o) => o.id === settings.outputId) ||
-				(settings.outputName && outputs.some((o) => o.name.toLowerCase() === settings.outputName.toLowerCase()));
-			out.open = !has;
+	// ---- tabs: one panel at a time, like Zonekeeper ----
+	const TAB_GROUPS = ["connectionGroup", "toastedGroup", "screenGroup", "optionsGroup"];
+	function syncTabs() {
+		const groups = TAB_GROUPS.map((id) => document.getElementById(id));
+		const visible = groups.filter((g) => !g.hidden);
+		if (!visible.some((g) => g.open)) { if (visible[0]) visible[0].open = true; }
+		for (const b of document.querySelectorAll("#tabs .tab")) {
+			const g = document.getElementById(b.dataset.group);
+			b.hidden = g.hidden;
+			b.classList.toggle("on", !g.hidden && g.open);
 		}
+		for (const g of groups) {
+			let first = true;
+			for (const sub of g.querySelectorAll(".section")) {
+				sub.classList.toggle("first", first && !sub.hidden);
+				if (!sub.hidden) first = false;
+			}
+		}
+	}
+	function showTab(id) {
+		for (const gid of TAB_GROUPS) document.getElementById(gid).open = gid === id;
+		syncTabs();
+	}
+	for (const b of document.querySelectorAll("#tabs .tab")) b.addEventListener("click", () => showTab(b.dataset.group));
+
+	// Which tab opens first: Connection when there's something to do there
+	// (the Core isn't connected yet, or this key has no output picked), else
+	// the tab with this action's own settings. Decided once when the panel
+	// loads, so a manual switch isn't undone by the next live update.
+	function autoOpenGroups() {
+		const isDial = DIAL_ACTIONS.includes(actionKind);
+		const isLink = LINK_ACTIONS.includes(actionKind);
+		let needConnection = false;
+		if (!document.getElementById("connectionGroup").hidden) {
+			if (state.status.phase !== "paired") needConnection = true;
+			if (!document.getElementById("outputGroup").hidden) {
+				const outputs = state.outputs || [];
+				const has = outputs.some((o) => o.id === settings.outputId) ||
+					(settings.outputName && outputs.some((o) => o.name.toLowerCase() === settings.outputName.toLowerCase()));
+				if (!has) needConnection = true;
+			}
+		}
+		showTab(needConnection ? "connectionGroup" : isLink ? "toastedGroup" : isDial ? "screenGroup" : "optionsGroup");
 	}
 </script>
 </body>

@@ -7,17 +7,29 @@ import { PlayImage } from "../data-images/play-key";
 import { StopImage } from "../data-images/stop-key";
 import { CANVAS } from "../icons/icon-renderer";
 import { composeKeyImage, fitText, formatDuration, type TextLine } from "../icons/key-image";
-import { textFontOf } from "../icons/text-paths";
+import { measureText, textFontOf } from "../icons/text-paths";
 import { getImage, type RoonOutput } from "../roon-connection";
 
 const log = streamDeck.logger.createScope("play-actions");
 const P = "com.vulkan.roon-dialed-up";
 
 export interface PlaySettings extends RoonKeySettings {
+	/**
+	 * "Show Icon" (default on). Off: no play/pause/stop icon behind the art,
+	 * text and bar, so a key that carries track info isn't competing with
+	 * an icon under it. The dimmed icon still shows while the output is
+	 * gone, since the key has nothing else to say then.
+	 */
+	showIcon?: boolean;
 	showCoverArt?: boolean;
 	showArtistTrack?: boolean;
 	showProgressBar?: boolean;
+	/** "Show Track Time": the playing position (or time left) on the key. */
 	showSeekPosition?: boolean;
+	/** What Show Track Time shows: elapsed (default) or remaining, as "-mm:ss". */
+	trackTimeMode?: "elapsed" | "remaining";
+	/** The track's full length, under the progress bar (the track time moves above it). */
+	showTotalTime?: boolean;
 }
 
 interface KeyState {
@@ -107,15 +119,37 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 				});
 		}
 
+		// Times: on their own, the track time sits under the bar as the
+		// original drew it. With the total shown too, the track time moves
+		// above the bar and the total takes its place below, and a plain line
+		// stands in for the bar when that is off, so the spacing never changes.
+		const showTotal = settings.showTotalTime === true && !!output.trackLength;
 		const blinkOff = state.pauseTimer !== undefined && state.pauseTicks % 2 !== 0;
 		if (settings.showSeekPosition && output.seekPosition !== undefined && !blinkOff) {
-			lines.push({ text: formatDuration(output.seekPosition), y: CANVAS - 24, size: 32 });
+			const remaining = settings.trackTimeMode === "remaining" && !!output.trackLength;
+			const y = showTotal ? CANVAS - 71 : CANVAS - 24;
+			const text = remaining
+				? formatDuration(Math.max(0, output.trackLength! - output.seekPosition))
+				: formatDuration(output.seekPosition);
+			lines.push({ text, y, size: 32 });
+			if (remaining) {
+				// The minus sits just left of the digits, so the digits stay
+				// centered and line up with the total time under them.
+				const digitsWidth = measureText(text, 32, false, font);
+				const minusWidth = measureText("-", 32, false, font);
+				lines.push({ text: "-", y, size: 32, x: CANVAS / 2 - digitsWidth / 2 - minusWidth - 3, align: "left" });
+			}
+		}
+		if (showTotal) {
+			lines.push({ text: formatDuration(output.trackLength!), y: CANVAS - 24, size: 32 });
 		}
 
 		const baseLayer =
 			base === "art"
 				? { dataUri: state.artDataUri! }
-				: this.iconBase(base);
+				: settings.showIcon === false
+					? { svgBody: "" }
+					: this.iconBase(base);
 
 		await action.setImage(
 			composeKeyImage({
@@ -123,6 +157,7 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 				lines,
 				font,
 				progressPercent: settings.showProgressBar ? state.progress.percent() : undefined,
+				divider: showTotal && !settings.showProgressBar,
 			}),
 		);
 	}

@@ -12,7 +12,7 @@ This started as a fork of Tomi Blinnikka's [streamdeck-roon](https://github.com/
 
 ### Buttons
 
-- Play / Pause (album art, artist/track, elapsed time, and progress bar, each independently toggleable)
+- Play / Pause (album art, artist/track, track time, total time, and progress bar, each independently toggleable; the track time can count up or show the time remaining, and the play/pause icon itself can be hidden so only the track info shows)
 - Play
 - Pause
 - Stop
@@ -61,21 +61,25 @@ Requires Stream Deck software 7.1 or later. The button actions work on any Strea
 
 ## Configuration
 
-Add one of the Roon actions to your Deck. The plugin finds your Roon Core on its own; when it does, the **Roon Core** section at the top of the settings shows a green light and the Core's name.
+Add one of the Roon actions to your Deck. Its settings are split into tabs: **Connection** (your Roon Core and the output the key controls), **Options** (icon style, text font, and the key's own settings), and on dials, **Screen** (the touchscreen layout). The plugin finds your Roon Core on its own; when it does, the **Connection** tab shows a green light and the Core's name.
 
 Open Roon, go to **Settings → Extensions**, find **Roon: Dialed Up**, and click **Enable**. This is a one-time step per Core.
 
-Then open the **Output** section and pick the output (zone) the button should control. Each button remembers its own output.
+Then pick the output (zone) the button should control under **Output** on the Connection tab. Each button remembers its own output. A new button picks one for you: the output you chose last, or whatever is playing.
 
-**If your Core isn't found for whatever reason**, click **Manual** next to the Core name, enter the Core's IP address (or hostname) and port (usually `9330`), and click **Connect**. The address is remembered. The **Available Cores** list lets you switch between Cores you have enabled.
+**If your Core isn't found for whatever reason**, click **Manual** next to the Core name, enter the Core's IP address (or hostname) and port (usually `9330`), and click **Connect**. The address is remembered. **Rescan** looks for Cores again, and the **Available Cores** list lets you switch between Cores you have enabled.
 
-**Add to Library / Heart (experimental).** One key that follows the playing track: a "+" when the track isn't in your library (press to add it: just the song, or its whole album, as set in the key's options), an outline heart once it is (press to heart it), and a filled heart when hearted (press to un-heart; it never removes anything from your library). Roon's official extension API can't do either of these, so this key talks to the Core over the protocol Roon's own apps use, through my [roon-library-controls](https://github.com/Vulkandr/roon-library-controls) package, on a separate connection the plugin opens only while such a key is placed. That part of Roon isn't officially open to apps, so a Roon update may break it until the plugin catches up; when the Core turns the plugin down, the key dims and its settings say "Not supported with this Roon version". Nothing else in the plugin depends on it.
+**Add to Library / Heart (experimental).** One key that follows the playing track: a "+" when the track isn't in your library (press to add it: just the song, or its whole album, as set in the key's options), an outline heart once it is (press to heart it), and a filled heart when hearted (press to un-heart; it never removes anything from your library). Roon's official extension API can't do either of these, so this key talks to the Core over the protocol Roon's own apps use, through my [roon-library-controls](https://github.com/Vulkandr/roon-library-controls) package, on a separate connection. The plugin only opens it once an Add to Library / Heart key has been on screen, keeps it open while any Dialed Up key or dial is visible (so the key is ready right away after a page change), and closes it 10 minutes after the last one leaves the screen. That part of Roon isn't officially open to apps, so a Roon update may break it until the plugin catches up; when the Core turns the plugin down, the key dims and its settings say "Not supported with this Roon version". Nothing else in the plugin depends on it.
 
 **Roon: Toasted buttons.** The Launch App and Search actions open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted) (my companion app) and do nothing if it isn't installed. Their settings show whether Toasted is running, with a Launch button when it isn't. Windows only.
 
 ## Upgrading from 1.x
 
 Your existing buttons and your Roon authorization carry over, so there is nothing to re-enable in Roon. The old host and port fields are gone in favor of automatic discovery, with a Manual button as a fallback.
+
+## Reporting a problem
+
+If something misbehaves, the plugin's log files help a lot. They're in `%APPDATA%\Elgato\StreamDeck\Plugins\com.vulkan.roon-dialed-up.sdPlugin\logs`. A new file starts every time Stream Deck starts, so right after restarting Stream Deck, the files ending in `.1` (the session that had the problem) and `.0` (the fresh one) are the useful pair. Attach them to a [GitHub issue](https://github.com/Vulkandr/streamdeck-roon-dialed-up/issues) or send them to me on the [Roon forum](https://community.roonlabs.com/t/325520).
 
 ## Local development
 
@@ -102,9 +106,13 @@ npm run watch
 
 Stream Deck locks a plugin's files while it is running, so quit the app before replacing the folder by hand.
 
+### Test build next to the installed plugin
+
+`npm run tester` builds the plugin and makes a copy called **Roon: Dialed Up Tester** in `com.vulkan.roon-dialed-up-tester.sdPlugin`, with its own plugin ID and its own category in the action list, so it installs beside the released plugin without touching your existing keys. Copy that folder into `%APPDATA%\Elgato\StreamDeck\Plugins\` and restart the Stream Deck app. It registers in Roon as its own extension, so enable it once under Settings → Extensions. Each build gets a new build number, so it always replaces the previous tester.
+
 ### Build a release package
 
-- Bump `version` in `package.json` and `Version` in `manifest.json` (`major.minor.patch.build`, for example `2.0.0.0`).
+- Bump the version in `package.json`, `package-lock.json` (two places), `Version` in `manifest.json` (`major.minor.patch.build`, for example `2.1.2.0`), and `display_version` in `src/roon-connection.ts` (the version Roon shows under Settings → Extensions).
 - `npm run build`
 - `streamdeck validate com.vulkan.roon-dialed-up.sdPlugin`
 - `streamdeck pack com.vulkan.roon-dialed-up.sdPlugin`

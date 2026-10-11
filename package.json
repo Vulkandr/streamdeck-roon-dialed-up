@@ -1,9 +1,10 @@
 {
     "name": "roon-dialed-up",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "private": true,
     "scripts": {
         "build": "rollup -c",
+        "tester": "rollup -c && node scripts/make-tester.cjs",
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.vulkan.roon-dialed-up\""
     },
     "type": "module",

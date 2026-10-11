@@ -35,7 +35,12 @@ const REFRESH_AFTER_MS = 24 * 60 * 60 * 1000;
 // no key has been visible for this long.
 const IDLE_STOP_MS = 10 * 60 * 1000;
 
-let watchers = 0;
+/** Heart keys on screen. */
+let heartKeys = 0;
+/** Other Dialed Up keys and dials on screen (see keepLibraryWarm). */
+let otherKeys = 0;
+/** A Heart key has been on screen since the plugin started. */
+let heartSeen = false;
 let client: RoonLibraryClient | null = null;
 let status: LibraryStatus = { phase: "off" };
 let generation = 0;
@@ -89,42 +94,84 @@ export async function libraryAdd(zoneId: string, mode: AddMode): Promise<TrackIn
 	return client.addToLibrary(zoneId, mode);
 }
 
-/**
- * Keeps the link up while the returned function hasn't been called. Each
- * placed key holds one; the link stops when the last one is released.
- */
-export function watchLibrary(): () => void {
-	watchers++;
-	if (idleTimer) {
-		clearTimeout(idleTimer);
+/** How many on-screen keys want the link open right now. */
+function activeWatchers(): number {
+	return heartKeys + (heartSeen ? otherKeys : 0);
+}
+
+/** Starts the link when the first watcher arrives, schedules the idle stop when the last one leaves. */
+function watchersChanged(before: number): void {
+	const now = activeWatchers();
+	if (now > 0) {
+		if (idleTimer) {
+			clearTimeout(idleTimer);
+			idleTimer = null;
+		}
+		if (before === 0) reconsider();
+		return;
+	}
+	if (before === 0) return;
+	if (idleTimer) clearTimeout(idleTimer);
+	idleTimer = setTimeout(() => {
 		idleTimer = null;
-	}
-	if (watchers === 1) {
-		// Starts the link, or does nothing when it is still up from before (a page change).
-		reconsider();
-	}
+		if (activeWatchers() > 0) return;
+		log.info("no Dialed Up key on screen for a while, closing the library link");
+		stop();
+		setStatus({ phase: "off" });
+	}, IDLE_STOP_MS);
+}
+
+function holder(add: () => void, remove: () => void): () => void {
+	const before = activeWatchers();
+	add();
+	watchersChanged(before);
 	let released = false;
 	return () => {
 		if (released) return;
 		released = true;
-		watchers--;
-		if (watchers <= 0) {
-			watchers = 0;
-			if (idleTimer) clearTimeout(idleTimer);
-			idleTimer = setTimeout(() => {
-				idleTimer = null;
-				if (watchers > 0) return;
-				log.info("no library key on screen for a while, closing the link");
-				stop();
-				setStatus({ phase: "off" });
-			}, IDLE_STOP_MS);
-		}
+		const b = activeWatchers();
+		remove();
+		watchersChanged(b);
 	};
 }
 
-// The paired Core can change (switching Cores, re-pairing); follow it.
+/**
+ * Keeps the link up while the returned function hasn't been called. Each
+ * Heart key on screen holds one.
+ */
+export function watchLibrary(): () => void {
+	return holder(
+		() => {
+			heartKeys++;
+			heartSeen = true;
+		},
+		() => {
+			heartKeys = Math.max(0, heartKeys - 1);
+		},
+	);
+}
+
+/**
+ * Held by every other Dialed Up key and dial on screen. Once a Heart key has
+ * been seen since the plugin started, these keep the link open too, so a
+ * Heart key coming back after a page change finds it already connected
+ * instead of waiting for a new session (about 3 s). Before any Heart key has
+ * appeared they do nothing, so people who never use it never open this
+ * connection.
+ */
+export function keepLibraryWarm(): () => void {
+	return holder(
+		() => {
+			otherKeys++;
+		},
+		() => {
+			otherKeys = Math.max(0, otherKeys - 1);
+		},
+	);
+}
+
 onStatusChanged(() => {
-	if (watchers > 0) reconsider();
+	if (activeWatchers() > 0) reconsider();
 });
 
 function clearTimers(): void {

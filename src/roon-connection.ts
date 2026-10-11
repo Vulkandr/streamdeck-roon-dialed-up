@@ -6,7 +6,7 @@ import RoonApiTransport from "node-roon-api-transport";
 import WsWebSocket from "ws";
 import streamDeck from "@elgato/streamdeck";
 
-import { getRoonState, setRoonState } from "./global-settings";
+import { getGlobalSettings, getRoonState, setRoonState } from "./global-settings";
 
 const log = streamDeck.logger.createScope("roon-connection");
 
@@ -317,6 +317,85 @@ export function findOutput(outputId?: string, outputName?: string): RoonOutput |
 	return null;
 }
 
+// ---------------------------------------------------------------------------
+// Output safety nets (added in 2.1.2 for edge cases that couldn't be reproduced)
+// ---------------------------------------------------------------------------
+
+/** Per key: the last "output not found" situation logged, so each one is logged once. */
+const missLogged = new Map<string, string>();
+
+/**
+ * The output a key with nothing chosen should use: the output last picked
+ * in any settings panel (the panel already offers that one first), else the
+ * first output that's playing right now. Null if neither exists yet; the key
+ * is then asked again on the next zone update, so it picks one as soon as
+ * something starts playing.
+ */
+function defaultOutput(all: RoonOutput[]): RoonOutput | null {
+	const last = String(getGlobalSettings().lastOutputName ?? "").toLowerCase();
+	if (last) {
+		const byName = all.find((o) => o.displayName.toLowerCase() === last);
+		if (byName) return byName;
+	}
+	return all.find((o) => o.state === "playing") ?? null;
+}
+
+export interface OutputCheck {
+	output: RoonOutput | null;
+	/** New outputId/outputName to save to the key, when they should change. */
+	update?: { outputId: string; outputName: string };
+}
+
+/**
+ * Looks up a key's output and says whether its saved choice needs fixing:
+ * - Nothing chosen yet: picks a default (see defaultOutput).
+ * - Found, but by name because the id changed (an output removed and added
+ *   back in Roon can come back with a new id): saves the new id, so the key
+ *   keeps working even if the name changes later.
+ * - Not found: logs the saved choice next to what Roon has, once per
+ *   situation, so a user's log shows exactly what went missing.
+ * Does nothing while not connected (an empty list means "don't know yet",
+ * not "gone").
+ */
+export function checkOutput(contextId: string, outputId?: string, outputName?: string): OutputCheck {
+	const all = getOutputs();
+	if (!transport || all.length === 0) {
+		return { output: null };
+	}
+
+	if (!outputId && !outputName) {
+		const pick = defaultOutput(all);
+		if (!pick) return { output: null };
+		log.info(`key ${contextId}: no output chosen, using "${pick.displayName}"`);
+		return { output: pick, update: { outputId: pick.outputId, outputName: pick.displayName } };
+	}
+
+	const output = findOutput(outputId, outputName);
+	if (output) {
+		if (missLogged.delete(contextId)) {
+			log.info(`key ${contextId}: output "${output.displayName}" is back`);
+		}
+		if (output.outputId !== outputId) {
+			log.info(`key ${contextId}: output "${output.displayName}" found by name with a new id (${outputId} -> ${output.outputId}), saving it`);
+			return { output, update: { outputId: output.outputId, outputName: output.displayName } };
+		}
+		return { output };
+	}
+
+	const situation = `${outputId}|${outputName}|${all.map((o) => o.outputId).sort().join(",")}`;
+	if (missLogged.get(contextId) !== situation) {
+		missLogged.set(contextId, situation);
+		const listed = all.map((o) => `"${o.displayName}" (${o.outputId}, ${o.state ?? "?"})`).join(", ");
+		log.warn(`key ${contextId}: saved output "${outputName ?? "?"}" (${outputId ?? "no id"}) is not among Roon's outputs: ${listed}`);
+	}
+	return { output: null };
+}
+
+/** A key went away: forget what was logged about it. */
+export function forgetOutputCheck(contextId: string): void {
+	missLogged.delete(contextId);
+}
+
 export function getTransport(): any {
 	return transport;
 }
@@ -380,6 +459,50 @@ export function reportFatalError(err: unknown): void {
 // ---------------------------------------------------------------------------
 // Zones
 // ---------------------------------------------------------------------------
+
+// The zone subscription is push-only: if Roon ever stops sending updates
+// on a connection that still looks alive, the plugin would keep showing the
+// old zones until a restart. Once a minute the full zone list is fetched
+// and compared; if the zones or their outputs differ from what the plugin
+// holds, the fetched list replaces it.
+const ZONE_RESYNC_MS = 60_000;
+let zoneResync: NodeJS.Timeout | null = null;
+
+function zoneShape(list: any[]): string {
+	return list
+		.map((z) => `${z.zone_id}:${(z.outputs ?? []).map((o: any) => o.output_id).sort().join("+")}`)
+		.sort()
+		.join(",");
+}
+
+export function resyncZones(reason: string): void {
+	const t = transport;
+	if (!t?.get_zones) return;
+	t.get_zones((err: unknown, body: any) => {
+		if (err || t !== transport || !body) {
+			if (err) log.warn(`zone resync (${reason}) failed: ${err}`);
+			return;
+		}
+		const fresh: any[] = body.zones ?? [];
+		if (zoneShape(fresh) === zoneShape(Object.values(zones))) return;
+		log.warn(`zone resync (${reason}): the zone list had drifted from Roon's, replacing it (had ${Object.keys(zones).length}, Roon has ${fresh.length})`);
+		zones = {};
+		for (const zone of fresh) zones[zone.zone_id] = zone;
+		notify(zoneListeners, false);
+	});
+}
+
+function startZoneResync(): void {
+	stopZoneResync();
+	zoneResync = setInterval(() => resyncZones("periodic"), ZONE_RESYNC_MS);
+}
+
+function stopZoneResync(): void {
+	if (zoneResync) {
+		clearInterval(zoneResync);
+		zoneResync = null;
+	}
+}
 
 function subscribeZones(): void {
 	transport.subscribe_zones((cmd: string, body: any) => {
@@ -679,7 +802,7 @@ export function startRoonConnection(): void {
 		roon = new RoonApi({
 			extension_id: "com.vulkan.roon-dialed-up",
 			display_name: "Roon: Dialed Up",
-			display_version: "2.1.0",
+			display_version: "2.1.2",
 			publisher: "Vulkandr",
 			email: "vulkandr@users.noreply.github.com",
 			website: "https://github.com/Vulkandr",
@@ -704,6 +827,7 @@ export function startRoonConnection(): void {
 				setConnectionStatus({ phase: "paired", detail: paired.display_name });
 				notify(coreListeners);
 				subscribeZones();
+				startZoneResync();
 			},
 
 			core_unpaired: (lost: any) => {
@@ -716,6 +840,7 @@ export function startRoonConnection(): void {
 					return;
 				}
 				log.info(`unpaired from core "${lost.display_name}"`);
+				stopZoneResync();
 				setCore(null);
 				transport = null;
 				zones = {};
@@ -798,6 +923,41 @@ export function startRoonConnection(): void {
 				});
 			}
 
+			// Dead-connection check: Roon's own protocol has no heartbeat here,
+			// so a connection that dies without closing (a network drop, the
+			// Core restarting badly) would look alive forever. A WebSocket ping
+			// every 30 s; no pong by the next one and the socket is closed,
+			// which runs the normal reconnect. Only armed after the first pong,
+			// so a Core that never answers pings is simply left alone.
+			if (ws && typeof ws.ping === "function") {
+				let answered = false;
+				let awaiting = false;
+				ws.on?.("pong", () => {
+					answered = true;
+					awaiting = false;
+				});
+				const heartbeat = setInterval(() => {
+					if (ws.readyState !== 1) return;
+					if (answered && awaiting) {
+						log.warn(`websocket to ${where}: no answer to the last ping, closing it so it reconnects`);
+						clearInterval(heartbeat);
+						try {
+							ws.terminate();
+						} catch {
+							// already gone
+						}
+						return;
+					}
+					awaiting = true;
+					try {
+						ws.ping();
+					} catch {
+						// the close handler deals with it
+					}
+				}, 30_000);
+				ws.on?.("close", () => clearInterval(heartbeat));
+			}
+
 			const originalOnOpen = moo.transport.onopen;
 			moo.transport.onopen = () => {
 				log.info(`websocket to ${where} open, registering`);
@@ -829,6 +989,14 @@ export function startRoonConnection(): void {
 				originalFoundCore(found);
 			};
 		}
+
+		// After the PC wakes from sleep: look for Cores again and re-check the
+		// zone list right away, instead of waiting for the periodic checks.
+		streamDeck.system.onSystemDidWakeUp(() => {
+			log.info("system woke up, checking the Roon connection");
+			rescan();
+			setTimeout(() => resyncZones("wake"), 5_000);
+		});
 
 		roonStatusService.set_status("Looking for a Roon Core...", false);
 		setConnectionStatus({ phase: "searching" });
