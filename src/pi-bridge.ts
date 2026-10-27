@@ -60,6 +60,10 @@ function buildState(): JsonValue {
 			name: o.displayName,
 			state: String(o.state ?? "stopped"),
 			hasVolume: !!o.volume,
+			// Grouped outputs share a zone; groupIndex 0 is the group's lead.
+			zoneId: o.zoneId,
+			groupIndex: o.groupIndex,
+			groupSize: o.groupSize,
 		})),
 		toasted: (() => {
 			const s = getToastedStatus();

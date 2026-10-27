@@ -36,12 +36,13 @@ abstract class ToggleAction extends RoonAction {
 @action({ UUID: `${P}.mute-unmute` })
 export class MuteUnmuteAction extends ToggleAction {
 	protected override get baseIconName() { return "mute"; }
+	protected override get usesGroupVolume() { return true; }
 	protected override isOn(output: RoonOutput) { return output.volume?.isMuted === true; }
 	protected override classicDisabledImage() { return MuteDisabled; }
 	protected override isAvailable(output: RoonOutput | null) { return !!output?.volume; }
 	override async onKeyUp(ev: KeyUpEvent<RoonKeySettings>) {
 		const mute = this.toggleDesiredState(ev.payload) === 0;
-		this.mute(ev.action, this.outputFor(ev.payload.settings), mute);
+		this.mute(ev.action, this.outputFor(ev.payload.settings), ev.payload.settings, mute);
 	}
 }
 

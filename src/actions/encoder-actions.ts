@@ -22,9 +22,9 @@ import { getIconColor, getIconStyle, onGlobalSettingsChanged } from "../global-s
 import { IconCells } from "../icons/icon-cells";
 import { renderIconPng } from "../icons/icon-renderer";
 import { renderStripText, svgToPng } from "../icons/raster";
-import { textFontOf } from "../icons/text-paths";
+import { measureText, textFontOf } from "../icons/text-paths";
 import { keepLibraryWarm } from "../library-link";
-import { checkOutput, findOutput, forgetOutputCheck, getImage, getTransport, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
+import { checkOutput, findOutput, forgetOutputCheck, getImage, getTransport, groupLead, groupOutputs, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
 
 const log = streamDeck.logger.createScope("encoder");
 const P = "com.vulkan.roon-dialed-up";
@@ -44,6 +44,8 @@ export interface EncoderSettings extends JsonObject {
 	barColor?: string;
 	/** Adjust Volume only: what a press/tap does. */
 	buttonPressMode?: "mute" | "playpause";
+	/** Adjust Volume only: turn and mute every output grouped with this one. On unless turned off. */
+	groupVolume?: boolean;
 	/** Player Controls only. */
 	showVolume?: boolean;
 }
@@ -190,8 +192,29 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 		}
 	}
 
+	/** Whether "Control whole group" applies (Adjust Volume only, not Player Controls). */
+	protected get usesGroupVolume(): boolean {
+		return true;
+	}
+
+	protected grouped(state: DialState): boolean {
+		return this.usesGroupVolume && state.settings.groupVolume !== false;
+	}
+
+	/**
+	 * The output the dial shows and works with: with "Control whole group"
+	 * on, the group's lead (its level is shown; changes go to the group).
+	 */
 	protected output(state: DialState): RoonOutput | null {
-		return findOutput(state.settings.outputId, state.settings.outputName);
+		const output = findOutput(state.settings.outputId, state.settings.outputName);
+		if (output && this.grouped(state)) return groupLead(output);
+		return output;
+	}
+
+	/** Every output a volume or mute change goes to (see Roon's group + / -). */
+	protected volumeTargets(state: DialState, output: RoonOutput): RoonOutput[] {
+		if (!this.grouped(state) || output.groupSize < 2) return [output];
+		return groupOutputs(output).filter((o) => !!o.volume);
 	}
 
 	protected control(dial: DialAction<EncoderSettings>, state: DialState, control: string): void {
@@ -213,10 +236,12 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 			void dial.showAlert();
 			return;
 		}
-		const step = (output.volume.step ?? 1) * ticks;
-		transport.change_volume(output.outputId, "relative_step", step, (err: unknown) => {
-			if (err) void dial.showAlert();
-		});
+		for (const target of this.volumeTargets(state, output)) {
+			const step = (target.volume?.step ?? 1) * ticks;
+			transport.change_volume(target.outputId, "relative_step", step, (err: unknown) => {
+				if (err) void dial.showAlert();
+			});
+		}
 	}
 
 	protected toggleMute(dial: DialAction<EncoderSettings>, state: DialState): void {
@@ -226,9 +251,12 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 			void dial.showAlert();
 			return;
 		}
-		transport.mute(output.outputId, state.isMuted ? "unmute" : "mute", (err: unknown) => {
-			if (err) void dial.showAlert();
-		});
+		const how = state.isMuted ? "unmute" : "mute";
+		for (const target of this.volumeTargets(state, output)) {
+			transport.mute(target.outputId, how, (err: unknown) => {
+				if (err) void dial.showAlert();
+			});
+		}
 	}
 
 	private toggleMuteAll(dial: DialAction<EncoderSettings>, state: DialState): void {
@@ -299,7 +327,10 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 			await text("displayTitle", lines.line1, textColor, rects.displayTitle?.size ?? 18);
 			await text("songTitle", lines.line2, textColor, rects.songTitle?.size ?? 18);
 		} else {
-			await text("displayTitle", this.titleText(output, settings), textColor, rects.displayTitle?.size ?? 16);
+			const titleSize = rects.displayTitle?.size ?? 16;
+			// Same fit test the strip text uses (3 px padding each side).
+			const fits = (t: string) => !rects.displayTitle || measureText(t, titleSize, true, font) <= rects.displayTitle.w - 6 + 0.5;
+			await text("displayTitle", this.titleText(output, settings, fits), textColor, titleSize);
 		}
 
 		// Album art behind everything, kept in sync with the current track.
@@ -352,11 +383,18 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 		await dial.setFeedback(payload as any);
 	}
 
-	private titleText(output: RoonOutput, settings: EncoderSettings): string {
+	private titleText(output: RoonOutput, settings: EncoderSettings, fits: (text: string) => boolean = () => true): string {
 		const titleMode = settings.titleMode ?? "output";
 		if (titleMode === "off") return "";
 		if (titleMode === "track" && output.artistName && output.songName) {
 			return `${output.artistName} - ${output.songName}`;
+		}
+		// Controlling a group: every output's name, lead first ("Auriga + default"),
+		// or the lead plus a count ("Auriga + 1", like Roon) when that won't fit.
+		if (output.groupSize > 1 && settings.groupVolume !== false && this.usesGroupVolume) {
+			const names = groupOutputs(output).map((o) => o.displayName);
+			const full = names.join(" + ");
+			return fits(full) ? full : `${names[0]} + ${names.length - 1}`;
 		}
 		return output.displayName;
 	}
@@ -528,6 +566,10 @@ export class VolumeEncoderAction extends SingletonAction<EncoderSettings> {
 @action({ UUID: `${P}.player-controls` })
 export class PlayerControlsAction extends VolumeEncoderAction {
 	protected override get showVolumeDisabledIconWhenUnavailable(): boolean {
+		return false;
+	}
+
+	protected override get usesGroupVolume(): boolean {
 		return false;
 	}
 

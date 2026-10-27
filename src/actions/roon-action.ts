@@ -12,7 +12,7 @@ import type { JsonObject } from "@elgato/utils";
 import { getIconColor, getIconStyle, onGlobalSettingsChanged } from "../global-settings";
 import { keepLibraryWarm } from "../library-link";
 import { composeKeyImage, styledIconBody } from "../icons/key-image";
-import { checkOutput, findOutput, forgetOutputCheck, getTransport, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
+import { checkOutput, findOutput, forgetOutputCheck, getTransport, groupLead, groupOutputs, onStatusChanged, onZonesChanged, type RoonOutput } from "../roon-connection";
 
 const log = streamDeck.logger.createScope("roon-action");
 
@@ -24,6 +24,8 @@ export interface RoonKeySettings extends JsonObject {
 	disableWhenUnavailable?: boolean;
 	/** Typeface for any text drawn on the key ("classic" or "condensed"). */
 	textFont?: string;
+	/** Volume keys: change every output grouped with this one (Roon's group + / -). On unless turned off. */
+	groupVolume?: boolean;
 }
 
 /**
@@ -118,8 +120,26 @@ export abstract class RoonAction<TSettings extends RoonKeySettings = RoonKeySett
 		}
 	}
 
+	/** Volume actions set this, so "Control whole group" applies to them. */
+	protected get usesGroupVolume(): boolean {
+		return false;
+	}
+
+	/**
+	 * The output the key works with. For volume keys with "Control whole
+	 * group" on, that's the group's lead: its level is the one shown and
+	 * checked, while changes go to every output in the group.
+	 */
 	protected outputFor(settings: TSettings): RoonOutput | null {
-		return findOutput(settings.outputId, settings.outputName);
+		const output = findOutput(settings.outputId, settings.outputName);
+		if (output && this.usesGroupVolume && settings.groupVolume !== false) return groupLead(output);
+		return output;
+	}
+
+	/** The outputs a volume change goes to: the whole group, or just this one. */
+	protected volumeTargets(output: RoonOutput, settings: TSettings | undefined): RoonOutput[] {
+		if (!this.usesGroupVolume || settings?.groupVolume === false || output.groupSize < 2) return [output];
+		return groupOutputs(output).filter((o) => !!o.volume);
 	}
 
 	/** Whether the action can currently do anything (drives dimming). */
@@ -227,34 +247,69 @@ export abstract class RoonAction<TSettings extends RoonKeySettings = RoonKeySett
 		});
 	}
 
-	protected changeVolume(action: KeyAction<TSettings>, output: RoonOutput | null, how: string, value: number, onOk?: () => void): void {
+	/**
+	 * Moves the volume by a number of steps, on every target output (see
+	 * volumeTargets): each moves by its own step size, the same as Roon's
+	 * group + and - buttons.
+	 */
+	protected stepVolume(action: KeyAction<TSettings>, output: RoonOutput | null, settings: TSettings | undefined, steps: number): void {
 		const transport = getTransport();
-		if (!transport || !output) {
+		if (!transport || !output?.volume) {
 			void action.showAlert();
 			return;
 		}
-		transport.change_volume(output.outputId, how, value, (err: unknown) => {
-			if (err) {
-				log.warn(`${this.manifestId}: change_volume failed: ${err}`);
-				void action.showAlert();
-			} else {
-				onOk?.();
-			}
-		});
+		for (const target of this.volumeTargets(output, settings)) {
+			const value = (target.volume?.step ?? 1) * steps;
+			transport.change_volume(target.outputId, "relative_step", value, (err: unknown) => {
+				if (err) {
+					log.warn(`${this.manifestId}: change_volume on "${target.displayName}" failed: ${err}`);
+					void action.showAlert();
+				}
+			});
+		}
 	}
 
-	protected mute(action: KeyAction<TSettings>, output: RoonOutput | null, mute: boolean): void {
+	/**
+	 * Sets a fixed level. With a group, the lead goes to that level and the
+	 * others move by the same number of steps, keeping their gap to it.
+	 */
+	protected setVolume(action: KeyAction<TSettings>, output: RoonOutput | null, settings: TSettings | undefined, value: number, onOk?: () => void): void {
+		const transport = getTransport();
+		if (!transport || !output?.volume) {
+			void action.showAlert();
+			return;
+		}
+		const steps = Math.round((value - output.volume.value) / (output.volume.step || 1));
+		for (const target of this.volumeTargets(output, settings)) {
+			const lead = target.outputId === output.outputId;
+			const how = lead ? "absolute" : "relative_step";
+			const amount = lead ? value : (target.volume?.step ?? 1) * steps;
+			if (!lead && steps === 0) continue;
+			transport.change_volume(target.outputId, how, amount, (err: unknown) => {
+				if (err) {
+					log.warn(`${this.manifestId}: change_volume on "${target.displayName}" failed: ${err}`);
+					void action.showAlert();
+				} else if (lead) {
+					onOk?.();
+				}
+			});
+		}
+	}
+
+	protected mute(action: KeyAction<TSettings>, output: RoonOutput | null, settings: TSettings | undefined, mute: boolean): void {
 		const transport = getTransport();
 		if (!transport || !output) {
 			void action.showAlert();
 			return;
 		}
-		transport.mute(output.outputId, mute ? "mute" : "unmute", (err: unknown) => {
-			if (err) {
-				log.warn(`${this.manifestId}: mute failed: ${err}`);
-				void action.showAlert();
-			}
-		});
+		for (const target of this.volumeTargets(output, settings)) {
+			transport.mute(target.outputId, mute ? "mute" : "unmute", (err: unknown) => {
+				if (err) {
+					log.warn(`${this.manifestId}: mute on "${target.displayName}" failed: ${err}`);
+					void action.showAlert();
+				}
+			});
+		}
 	}
 }
 

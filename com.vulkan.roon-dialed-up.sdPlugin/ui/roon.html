@@ -197,6 +197,21 @@
 	.zone .zstate.playing { color: var(--green); }
 	.zone .zstate.loading { color: var(--amber); }
 	.zone.missing .zname { color: var(--muted); font-style: italic; }
+	/* grouped outputs: listed together, lead first, inside one border, a chain between each */
+	.zgroup { margin: 4px 8px; border: 1px solid #6a6a6a; border-radius: var(--radius); overflow: hidden; }
+	.zgroup .zone { padding-left: 9px; }
+	.zchain { position: relative; height: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+	.zchain svg {
+		position: absolute; left: 50%; top: 0; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+		color: var(--muted); background: var(--card); border: 1px solid #5a5a5a; padding: 2px; border-radius: 50%; transform: rotate(-45deg);
+	}
+	.ztag {
+		display: inline-flex; align-items: center; gap: 3px; flex: none;
+		font-size: 11px; font-weight: 600; color: var(--muted);
+		border: 1px solid #5a5a5a; border-radius: 9px; padding: 0 6px 0 4px; line-height: 16px;
+	}
+	.ztag svg { width: 11px; height: 11px; }
+	.checkhint { color: var(--faint); font-size: 11.5px; margin: -8px 0 0 24px; }
 	.warn { display: flex; align-items: flex-start; gap: 8px; color: var(--red); font-size: 12px; font-weight: 600; line-height: 1.35; margin: 2px 0 10px 0; }
 	.warn svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
 	.caution { color: var(--amber); font-size: 12px; margin: 24px 0 0 0; padding-top: 10px; border-top: 1px solid var(--border); }
@@ -477,6 +492,12 @@
 					<label class="check"><input type="checkbox" data-setting="showName">Show Core name under the light</label>
 				</div>
 
+				<!-- volume keys and Adjust Volume dial -->
+				<div id="optGroupVolume" class="stack" hidden>
+					<label class="check"><input type="checkbox" data-setting="groupVolume">Control whole group</label>
+					<div class="checkhint">When this output is grouped, changes go to every output in the group, like Roon's group + and &minus;. The lead's level is shown. Set them all to DSP Volume to move evenly.</div>
+				</div>
+
 				<!-- all keys -->
 				<label class="check" id="optDim" hidden><input type="checkbox" data-setting="disableWhenUnavailable">Dim when action not available</label>
 			</div>
@@ -599,6 +620,7 @@
 		document.getElementById("optVolumeSet").hidden = actionKind !== "volume-set";
 		document.getElementById("optButtonPress").hidden = actionKind !== "volume-encoder";
 		document.getElementById("optDim").hidden = !isKey;
+		document.getElementById("optGroupVolume").hidden = !VOLUME_ACTIONS.includes(actionKind);
 		document.getElementById("optStatus").hidden = actionKind !== "status";
 		document.getElementById("optHeart").hidden = actionKind !== "heart";
 		document.getElementById("experimentalNote").hidden = actionKind !== "heart";
@@ -626,6 +648,7 @@
 		if (actionKind === "volume-set") Object.assign(defaults, { showCurrentVolume: false });
 		if (DIAL_ACTIONS.includes(actionKind)) Object.assign(defaults, { showAlbumArt: false, showLogo: true, albumArtTransparency: 50, uiTransparency: 100, titleMode: "output", textColor: "#ffffff", barColor: "#ffffff", progressBarMode: "off", showVolume: true });
 		if (actionKind === "volume-encoder") defaults.buttonPressMode = "mute";
+		if (VOLUME_ACTIONS.includes(actionKind)) defaults.groupVolume = true;
 		if (actionKind === "heart") defaults.libraryAddMode = "track";
 
 		let changed = false;
@@ -876,6 +899,8 @@
 	}
 
 	const STATE_LABELS = { playing: "Playing", paused: "Paused", loading: "Loading", stopped: "Stopped" };
+	const CHAIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+		'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
 
 	function renderOutputs() {
 		if (document.getElementById("outputGroup").hidden) return;
@@ -892,11 +917,23 @@
 		const caution = document.getElementById("volumeCaution");
 		caution.hidden = !(selected && !selected.hasVolume && VOLUME_ACTIONS.includes(actionKind));
 
-		let rows = outputs.map((o) => {
+		const row = (o) => {
 			const cls = "zone" + (selected && o.id === selected.id ? " selected" : "");
+			const tag = o.groupSize > 1 ? '<div class="ztag">' + CHAIN_SVG + 'Grouped</div>' : "";
 			return '<div class="' + cls + '" data-output="' + esc(o.id) + '"><div class="zname">' + esc(o.name) +
-				'</div><div class="zstate ' + esc(o.state) + '">' + esc(STATE_LABELS[o.state] || o.state) + '</div></div>';
-		});
+				'</div>' + tag + '<div class="zstate ' + esc(o.state) + '">' + esc(STATE_LABELS[o.state] || o.state) + '</div></div>';
+		};
+		// Grouped outputs (same zone) sit together where the first of them
+		// would appear, lead first, in one border with a chain between each.
+		const placed = new Set();
+		let rows = [];
+		for (const o of outputs) {
+			if (placed.has(o.id)) continue;
+			if (!(o.groupSize > 1) || !o.zoneId) { placed.add(o.id); rows.push(row(o)); continue; }
+			const members = outputs.filter((x) => x.zoneId === o.zoneId).sort((a, b) => a.groupIndex - b.groupIndex);
+			members.forEach((m) => placed.add(m.id));
+			rows.push('<div class="zgroup">' + members.map(row).join('<div class="zchain">' + CHAIN_SVG + '</div>') + '</div>');
+		}
 		if (!selected && settings.outputName) {
 			rows.unshift('<div class="zone selected missing"><div class="zname">' + esc(settings.outputName) + '</div><div class="zstate">Offline</div></div>');
 		}

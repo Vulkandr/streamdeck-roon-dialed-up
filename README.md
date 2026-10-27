@@ -33,6 +33,7 @@ This started as a fork of Tomi Blinnikka's [streamdeck-roon](https://github.com/
 ### Dials (Stream Deck+)
 
 - Adjust Volume: rotate to change volume, short press to mute/unmute (or play/pause, if set to that mode), long press to mute/unmute all zones
+- Grouped zones: the volume keys and the Adjust Volume dial change every output in a Roon group at once (see below)
 - Player Controls: play/pause on press, previous/next on rotation, hold-to-mute on the touchscreen, with a Show Volume toggle to switch its touchscreen layout between a centered display and one that includes the volume readout
 
 ### Customization
@@ -70,6 +71,8 @@ Then pick the output (zone) the button should control under **Output** on the Co
 **If your Core isn't found for whatever reason**, click **Manual** next to the Core name, enter the Core's IP address (or hostname) and port (usually `9330`), and click **Connect**. The address is remembered. **Rescan** looks for Cores again, and the **Available Cores** list lets you switch between Cores you have enabled.
 
 **Add to Library / Heart (experimental).** One key that follows the playing track: a "+" when the track isn't in your library (press to add it: just the song, or its whole album, as set in the key's options), an outline heart once it is (press to heart it), and a filled heart when hearted (press to un-heart; it never removes anything from your library). Roon's official extension API can't do either of these, so this key talks to the Core over the protocol Roon's own apps use, through my [roon-library-controls](https://github.com/Vulkandr/roon-library-controls) package, on a separate connection. The plugin only opens it once an Add to Library / Heart key has been on screen, keeps it open while any Dialed Up key or dial is visible (so the key is ready right away after a page change), and closes it 10 minutes after the last one leaves the screen. That part of Roon isn't officially open to apps, so a Roon update may break it until the plugin catches up; when the Core turns the plugin down, the key dims and its settings say "Not supported with this Roon version". Nothing else in the plugin depends on it.
+
+**Grouped zones.** When the chosen output is part of a Roon group, the Volume Up, Volume Down, Volume Set and Mute keys and the Adjust Volume dial control the whole group, the same as the group + and − buttons in Roon's volume popup: each output moves by its own step, and the level shown is the group lead's (the output the group was made from). The dial's title shows the group as "Living Room + Kitchen", or "Living Room + 1" when the names don't fit. Volume Set puts the lead at the level you set and moves the others by the same number of steps. Outputs with fixed volume are skipped. For the outputs to move evenly, set them all to DSP Volume in Roon. To control only the chosen output, turn off **Control whole group** in the key's Options tab. In the output list, grouped outputs sit together inside one border, lead first, with a chain between them.
 
 **Roon: Toasted buttons.** The Launch App and Search actions open [Roon: Toasted](https://github.com/Vulkandr/roon-toasted) (my companion app) and do nothing if it isn't installed. Their settings show whether Toasted is running, with a Launch button when it isn't. Windows only.
 

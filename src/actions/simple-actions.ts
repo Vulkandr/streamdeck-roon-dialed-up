@@ -63,25 +63,25 @@ export class PreviousAction extends RepeatingAction {
 @action({ UUID: `${P}.volume-up` })
 export class VolumeUpAction extends RepeatingAction {
 	protected override get iconName() { return "volume-up"; }
+	protected override get usesGroupVolume() { return true; }
 	protected override classicDisabledImage() { return VolumeUpDisabled; }
 	protected override isAvailable(output: RoonOutput | null) {
 		return !!output?.volume && output.volume.value < output.volume.max;
 	}
-	protected override onTrigger(action: KeyAction<RoonKeySettings>, output: RoonOutput | null, count: number) {
-		const step = (output?.volume?.step ?? 1) * (count + 1);
-		this.changeVolume(action, output, "relative_step", step);
+	protected override onTrigger(action: KeyAction<RoonKeySettings>, output: RoonOutput | null, count: number, settings: RoonKeySettings) {
+		this.stepVolume(action, output, settings, count + 1);
 	}
 }
 
 @action({ UUID: `${P}.volume-down` })
 export class VolumeDownAction extends RepeatingAction {
 	protected override get iconName() { return "volume-down"; }
+	protected override get usesGroupVolume() { return true; }
 	protected override classicDisabledImage() { return VolumeDownDisabled; }
 	protected override isAvailable(output: RoonOutput | null) {
 		return !!output?.volume && output.volume.value > output.volume.min;
 	}
-	protected override onTrigger(action: KeyAction<RoonKeySettings>, output: RoonOutput | null, count: number) {
-		const step = -(output?.volume?.step ?? 1) * (count + 1);
-		this.changeVolume(action, output, "relative_step", step);
+	protected override onTrigger(action: KeyAction<RoonKeySettings>, output: RoonOutput | null, count: number, settings: RoonKeySettings) {
+		this.stepVolume(action, output, settings, -(count + 1));
 	}
 }

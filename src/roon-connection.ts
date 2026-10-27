@@ -139,6 +139,11 @@ export interface RoonOutput {
 	outputId: string;
 	zoneId: string;
 	displayName: string;
+	/** The zone's name; for a group Roon shortens it to the lead plus a count, e.g. "Auriga + 1". */
+	zoneName: string;
+	/** Position in the zone's output list (0 = the group's lead) and how many outputs share the zone. */
+	groupIndex: number;
+	groupSize: number;
 	volume?: {
 		type: string;
 		min: number;
@@ -241,10 +246,14 @@ export function getZones(): any[] {
 }
 
 function toOutput(zone: any, output: any): RoonOutput {
+	const outputs: any[] = zone.outputs ?? [];
 	const result: RoonOutput = {
 		outputId: output.output_id,
 		zoneId: zone.zone_id,
 		displayName: output.display_name,
+		zoneName: String(zone.display_name ?? output.display_name),
+		groupIndex: Math.max(0, outputs.findIndex((o) => o.output_id === output.output_id)),
+		groupSize: outputs.length,
 		state: zone.state,
 		isNextAllowed: zone.is_next_allowed,
 		isPreviousAllowed: zone.is_previous_allowed,
@@ -295,6 +304,36 @@ export function getOutputs(): RoonOutput[] {
 		}
 	}
 	return result.sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+/**
+ * Every output in the same zone as `output`, in Roon's order. Grouped
+ * outputs share one zone; the first is the group's lead (the one the group
+ * was made from and is named after). A single output returns just itself.
+ */
+export function groupOutputs(output: RoonOutput): RoonOutput[] {
+	const zone = zones[output.zoneId];
+	if (!zone) return [output];
+	return (zone.outputs ?? []).map((o: any) => toOutput(zone, o));
+}
+
+/** The lead of the group `output` belongs to (itself when not grouped). */
+export function groupLead(output: RoonOutput): RoonOutput {
+	return output.groupSize > 1 ? (groupOutputs(output)[0] ?? output) : output;
+}
+
+/** Last logged group layout, so each change of groups is logged once. */
+let loggedGroups = "";
+
+function logGroups(): void {
+	const groups = Object.values(zones)
+		.filter((z: any) => (z.outputs?.length ?? 0) > 1)
+		.map((z: any) => (z.outputs as any[]).map((o) => `"${o.display_name}"`).join(" + "))
+		.sort();
+	const text = groups.join("; ");
+	if (text === loggedGroups) return;
+	loggedGroups = text;
+	log.info(groups.length ? `grouped outputs (lead first): ${text}` : "no grouped outputs");
 }
 
 /**
@@ -538,6 +577,7 @@ function subscribeZones(): void {
 			}
 		}
 
+		if (!seekOnly) logGroups();
 		notify(zoneListeners, seekOnly);
 	});
 }
@@ -802,7 +842,7 @@ export function startRoonConnection(): void {
 		roon = new RoonApi({
 			extension_id: "com.vulkan.roon-dialed-up",
 			display_name: "Roon: Dialed Up",
-			display_version: "2.1.2",
+			display_version: "2.2.0",
 			publisher: "Vulkandr",
 			email: "vulkandr@users.noreply.github.com",
 			website: "https://github.com/Vulkandr",

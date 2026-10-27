@@ -21,6 +21,7 @@ export function formatVolume(volume: NonNullable<RoonOutput["volume"]>): string 
 @action({ UUID: "com.vulkan.roon-dialed-up.volume-set" })
 export class VolumeSetAction extends RoonAction<VolumeSetSettings> {
 	protected override get iconName() { return "volume-set"; }
+	protected override get usesGroupVolume() { return true; }
 	protected override classicDisabledImage() { return VolumeSetDisabled; }
 	protected override isAvailable(output: RoonOutput | null, _settings: VolumeSetSettings) { return !!output?.volume; }
 
@@ -31,7 +32,7 @@ export class VolumeSetAction extends RoonAction<VolumeSetSettings> {
 			await ev.action.showAlert();
 			return;
 		}
-		this.changeVolume(ev.action, output, "absolute", volume, () => {
+		this.setVolume(ev.action, output, ev.payload.settings, volume, () => {
 			void ev.action.showOk();
 		});
 	}
