@@ -261,6 +261,7 @@
 		background-position: calc(100% - 14px) 55%, calc(100% - 9px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
 	select option { background: var(--input); }
 
+
 	input[type="color"] {
 		appearance: none; -webkit-appearance: none; width: 34px; height: 24px; padding: 0;
 		border: 1px solid var(--border); border-radius: 5px; background: var(--input); cursor: pointer;
@@ -425,6 +426,9 @@
 						</div>
 					</div>
 					<label class="check"><input type="checkbox" data-setting="showTotalTime">Show Total Time</label>
+					<div id="optLockState" class="stack" hidden>
+						<label class="check" title="The key keeps one look: album art stays up while paused, and an image or GIF you set on the key keeps playing without restarting. Pressing still plays and pauses."><input type="checkbox" data-setting="lockState">Don't change look on play/pause</label>
+					</div>
 				</div>
 
 				<!-- play-item / play-this -->
@@ -449,9 +453,14 @@
 							<option value="Start Radio">Start Radio</option>
 						</select>
 					</div>
+					<div id="playlistPick" class="stack" hidden>
+						<div class="row"><div class="rlabel">Playlist<div class="rhint" id="playlistHint">Your playlists in Roon.</div></div><button id="playlistRefresh" class="small" title="Load the list of playlists again">Refresh</button></div>
+						<select id="playlistSelect"></select>
+					</div>
 					<div id="itemTitleRow" class="stack">
 						<div class="row"><div class="rlabel">Item title<div class="rhint">Must match the name in Roon exactly.</div></div></div>
-						<input type="text" id="itemTitle" data-setting="itemTitle" placeholder="Playlist, artist, album…">
+						<input type="text" id="itemTitle" data-setting="itemTitle" placeholder="Playlist, artist, album…" list="itemSuggest" autocomplete="off">
+						<datalist id="itemSuggest"></datalist>
 					</div>
 				</div>
 
@@ -580,6 +589,15 @@
 				autoOpenGroups();
 			}
 			render();
+		} else if (payload.type === "suggestions") {
+			// Only the answer to the latest keystroke counts.
+			if (payload.seq === suggestSeq) fillSuggestions(payload.items || []);
+		} else if (payload.type === "playlists") {
+			clearTimeout(playlistsTimer);
+			playlistsLoading = false;
+			playlistsFailed = !payload.ok;
+			playlists = payload.ok ? (payload.items || []) : null;
+			renderPlaylistPick();
 		} else if (payload.type === "manualResult") {
 			manualBusy = false;
 			if (payload.ok) { manualOpen = false; manualNote = ""; }
@@ -616,6 +634,7 @@
 		const showPlay = actionKind === "play" || actionKind === "play-pause";
 		const showItem = actionKind === "play-item" || actionKind === "play-this";
 		document.getElementById("optPlay").hidden = !showPlay;
+		document.getElementById("optLockState").hidden = actionKind !== "play-pause";
 		document.getElementById("optItem").hidden = !showItem;
 		document.getElementById("optVolumeSet").hidden = actionKind !== "volume-set";
 		document.getElementById("optButtonPress").hidden = actionKind !== "volume-encoder";
@@ -642,7 +661,7 @@
 		const defaults = {};
 		if (KEY_ACTIONS.includes(actionKind)) defaults.disableWhenUnavailable = true;
 		if (TEXT_ACTIONS.includes(actionKind)) defaults.textFont = "condensed";
-		if (actionKind === "play-pause") Object.assign(defaults, { showIcon: true, showCoverArt: true, showArtistTrack: true, showProgressBar: true, showSeekPosition: true, trackTimeMode: "elapsed", showTotalTime: false });
+		if (actionKind === "play-pause") Object.assign(defaults, { showIcon: true, showCoverArt: true, showArtistTrack: true, showProgressBar: true, showSeekPosition: true, trackTimeMode: "elapsed", showTotalTime: false, lockState: false });
 		if (actionKind === "play-item") Object.assign(defaults, { itemType: "playlists", itemAction: "Play Now" });
 		if (actionKind === "play-this") Object.assign(defaults, { itemType: "artists", itemAction: "Shuffle" });
 		if (actionKind === "volume-set") Object.assign(defaults, { showCurrentVolume: false });
@@ -684,7 +703,12 @@
 			} else if (el.tagName === "SELECT") {
 				el.addEventListener("change", () => {
 					settings[key] = el.value; saveSettings();
-					if (key === "itemType") applyItemActionRules(true);
+					if (key === "itemType") {
+						// A playlist name isn't an artist (and so on): start the new type with an empty name.
+						delete settings.itemTitle; delete settings.playlistId; delete settings.playlistKind;
+						document.getElementById("itemTitle").value = "";
+						applyItemActionRules(true); playlistManual = false; renderPlaylistPick();
+					}
 				});
 			} else {
 				el.addEventListener("change", () => { settings[key] = el.value; saveSettings(); });
@@ -703,6 +727,51 @@
 			if (manualOpen) document.getElementById("manualHost").focus();
 		});
 		document.getElementById("manualGo").addEventListener("click", submitManual);
+		document.getElementById("playlistSelect").addEventListener("change", (e) => {
+			const v = e.target.value;
+			if (v === "__manual__") {
+				playlistManual = true;
+				renderPlaylistPick();
+				document.getElementById("itemTitle").focus();
+				return;
+			}
+			const p = v.startsWith("i:") ? (playlists || [])[Number(v.slice(2))] : null;
+			if (!p) return;
+			playlistManual = false;
+			settings.itemTitle = p.title;
+			if (p.id) settings.playlistId = p.id; else delete settings.playlistId;
+			if (p.kind) settings.playlistKind = p.kind; else delete settings.playlistKind;
+			saveSettings();
+			document.getElementById("itemTitle").value = p.title;
+			renderPlaylistPick();
+		});
+		// Suggestions while typing (artists, albums, composers, genres, tags, radio), from Roon.
+		document.getElementById("itemTitle").addEventListener("input", (e) => {
+			clearTimeout(suggestTimer);
+			const type = settings.itemType || "playlists";
+			const query = e.target.value;
+			// Save as you type (not only on leaving the field), so the panel's refresh can't undo it.
+			clearTimeout(titleSaveTimer);
+			titleSaveTimer = setTimeout(() => {
+				if (settings.itemTitle === query) return;
+				settings.itemTitle = query;
+				if (settings.playlistId || settings.playlistKind) { delete settings.playlistId; delete settings.playlistKind; }
+				saveSettings();
+			}, 400);
+			// Picking a suggestion fires this too: that's a choice, not more typing.
+			const options = [...document.getElementById("itemSuggest").options];
+			if (options.some((o) => o.value === query)) { fillSuggestions([]); return; }
+			if (type === "playlists" || query.trim().length < 2) { fillSuggestions([]); return; }
+			suggestTimer = setTimeout(() => {
+				suggestSeq += 1;
+				sendToPlugin({ type: "suggest", itemType: type, query, seq: suggestSeq });
+			}, 250);
+		});
+		// A typed name no longer points at a picked playlist.
+		document.getElementById("itemTitle").addEventListener("change", () => {
+			if (settings.playlistId || settings.playlistKind) { delete settings.playlistId; delete settings.playlistKind; saveSettings(); }
+		});
+		document.getElementById("playlistRefresh").addEventListener("click", () => requestPlaylists(true));
 		document.getElementById("toastedBtn").addEventListener("click", (e) => sendToPlugin({ type: e.currentTarget.dataset.act }));
 		document.getElementById("manualHost").addEventListener("keydown", (e) => { if (e.key === "Enter") submitManual(); });
 		document.getElementById("manualPort").addEventListener("keydown", (e) => { if (e.key === "Enter") submitManual(); });
@@ -750,6 +819,8 @@
 			} else if (el.type === "range") {
 				el.value = v !== undefined ? v : Number(el.getAttribute("value") || 0);
 				el.nextElementSibling.textContent = el.value;
+			} else if (el === document.activeElement && el.type === "text") {
+				// Being typed in: leave it be (its own handler saves it).
 			} else if (v !== undefined && v !== null) {
 				el.value = v;
 			} else if (el.type !== "color") {
@@ -757,6 +828,112 @@
 			}
 		});
 		if (actionKind === "play-item" || actionKind === "play-this") applyItemActionRules(false);
+		renderPlaylistPick();
+	}
+
+	// ---- Play Selected Item, type Playlist: pick from the Core's playlists ----
+	// null = not loaded yet. Smart playlists appear in this list too, but
+	// Roon's extension API can't play them (yet).
+	let playlists = null;
+	let playlistsLoading = false;
+	let playlistsFailed = false;
+	let playlistManual = false;
+	let playlistsTimer = null;
+	let suggestTimer = null;
+	let titleSaveTimer = null;
+	let suggestSeq = 0;
+
+	function fillSuggestions(items) {
+		const list = document.getElementById("itemSuggest");
+		list.innerHTML = "";
+		const seen = new Set();
+		for (const it of items) {
+			if (seen.has(it.title)) continue;
+			seen.add(it.title);
+			const o = document.createElement("option");
+			o.value = it.title;
+			if (it.subtitle) o.label = it.subtitle;
+			list.appendChild(o);
+		}
+	}
+
+	function playlistMode() {
+		return actionKind === "play-item" && (settings.itemType || "playlists") === "playlists";
+	}
+
+	function requestPlaylists(force) {
+		if (playlistsLoading) return;
+		if (!force && (playlists !== null || playlistsFailed)) return;
+		playlistsLoading = true; playlistsFailed = false;
+		sendToPlugin({ type: "getPlaylists" });
+		// Never sit on "Loading…" forever: no answer in 15 seconds counts as a failure.
+		clearTimeout(playlistsTimer);
+		playlistsTimer = setTimeout(() => {
+			if (!playlistsLoading) return;
+			playlistsLoading = false; playlistsFailed = true;
+			renderPlaylistPick();
+		}, 15000);
+		renderPlaylistPick();
+	}
+
+	function renderPlaylistPick() {
+		const pick = document.getElementById("playlistPick");
+		const titleRow = document.getElementById("itemTitleRow");
+		if (!playlistMode()) {
+			pick.hidden = true;
+			titleRow.hidden = actionKind !== "play-item";
+			return;
+		}
+		pick.hidden = false;
+		titleRow.hidden = !playlistManual;
+
+		const connected = state && state.status && state.status.phase === "paired";
+		if (playlists === null && !playlistsLoading && !playlistsFailed && connected) requestPlaylists(false);
+
+		const hint = document.getElementById("playlistHint");
+		hint.textContent = playlistsLoading ? "Loading playlists…" :
+			playlistsFailed ? "Couldn't load playlists. Check the connection, then Refresh." :
+			playlists === null ? "Playlists appear once connected to a Core." :
+			playlists.length === 0 ? "No playlists found in Roon." :
+			playlists.some((p) => p.kind) ? "Your playlists in Roon, newest first." :
+			"Newest first. Couldn't reach Roon's library link, so smart playlists aren't marked and won't play.";
+
+		const current = settings.itemTitle || "";
+		const list = playlists || [];
+		let match = settings.playlistId ? list.find((p) => p.id === settings.playlistId) : null;
+		if (!match && current) {
+			const byName = list.filter((p) => p.title.toLowerCase() === current.toLowerCase());
+			match = byName[0] || null;
+			// A key from before the list (typed name, no id): attach the id when the name is unambiguous.
+			if (byName.length === 1 && byName[0].id && !settings.playlistId) {
+				settings.playlistId = byName[0].id;
+				if (byName[0].kind) settings.playlistKind = byName[0].kind;
+				saveSettings();
+			}
+		}
+
+		// The panel re-renders on every state push; rebuild only when something changed, or an open dropdown would close.
+		const sel = document.getElementById("playlistSelect");
+		const sig = JSON.stringify([current, match ? list.indexOf(match) : -1, playlists === null, list.map((p) => [p.title, p.kind, p.id])]);
+		if (sel.dataset.sig === sig) return;
+		sel.dataset.sig = sig;
+		sel.innerHTML = "";
+		const add = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text; sel.appendChild(o); return o; };
+		if (!current) add("", "Choose a playlist…");
+		else if (!match) add("__current__", plLabel({ title: current, kind: settings.playlistKind }) + (playlists === null ? "" : " (not found in Roon)"));
+		list.forEach((p, i) => add("i:" + i, plLabel(p)));
+		add("__manual__", "Type a name instead…");
+		sel.value = !current ? "" : match ? "i:" + list.indexOf(match) : "__current__";
+	}
+
+	// The kinds Roon's sidebar marks. A native dropdown only shows text, so these are characters.
+	// Qobuz / TIDAL: Squared Latin Capital Letter Q (U+1F140) and T (U+1F143). Smart: High Voltage Sign (U+26A1).
+	const PL_MARKS = { smart: "\u26A1", qobuz: "\u{1F140}", tidal: "\u{1F143}" };
+
+	function plLabel(p) {
+		const mark = PL_MARKS[p.kind];
+		// After the name, like Roon's sidebar, so the names stay lined up.
+		return mark ? p.title + "  " + mark : p.title;
 	}
 
 	function renderIconStyle() {

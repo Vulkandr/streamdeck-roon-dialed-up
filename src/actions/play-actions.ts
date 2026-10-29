@@ -30,6 +30,14 @@ export interface PlaySettings extends RoonKeySettings {
 	trackTimeMode?: "elapsed" | "remaining";
 	/** The track's full length, under the progress bar (the track time moves above it). */
 	showTotalTime?: boolean;
+	/**
+	 * Play/Pause only: "Don't change look on play/pause". The key stays in
+	 * its first state, so album art stays up while paused and an image the
+	 * person set on the key (a GIF too) keeps running without restarting.
+	 * Pressing still plays and pauses. Works because the manifest turns off
+	 * Stream Deck's own state flip on press for this action.
+	 */
+	lockState?: boolean;
 }
 
 interface KeyState {
@@ -40,6 +48,13 @@ interface KeyState {
 	/** While paused, the elapsed time blinks: ticks once a second. */
 	pauseTimer?: NodeJS.Timeout;
 	pauseTicks: number;
+	/**
+	 * What was last sent to the key, so an unchanged picture or state isn't
+	 * sent again. Roon reports the position every second while playing, and
+	 * every resend restarts an animated GIF set as the key's own image.
+	 */
+	sentImage?: { value: string | undefined };
+	sentState?: number;
 }
 
 /**
@@ -81,14 +96,14 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 		const state = this.stateFor(action.id);
 
 		if (!output) {
-			await action.setState(0);
-			await action.setImage(this.styledImage(settings, true));
+			await this.sendState(action, state, 0);
+			await this.sendImage(action, state, this.styledImage(settings, true));
 			this.stopPauseBlink(state);
 			return;
 		}
 
 		const playing = output.state === "playing" || output.state === "loading";
-		await action.setState(playing ? 1 : 0);
+		await this.sendState(action, state, playing && settings.lockState !== true ? 1 : 0);
 		state.progress.update(output);
 		this.syncPauseBlink(state, output, action, settings);
 
@@ -105,7 +120,7 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 
 		const base = this.pickBase(output, settings, !!state.artDataUri);
 		if (base === null) {
-			await action.setImage(this.styledImage(settings, true));
+			await this.sendImage(action, state, this.styledImage(settings, true));
 			return;
 		}
 
@@ -151,7 +166,7 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 					? { svgBody: "" }
 					: this.iconBase(base);
 
-		await action.setImage(
+		await this.sendImage(action, state,
 			composeKeyImage({
 				base: baseLayer,
 				lines,
@@ -160,6 +175,20 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 				divider: showTotal && !settings.showProgressBar,
 			}),
 		);
+	}
+
+	/** setImage, skipped when the key already shows exactly this. */
+	private async sendImage(action: KeyAction<PlaySettings>, state: KeyState, image: string | undefined): Promise<void> {
+		if (state.sentImage && state.sentImage.value === image) return;
+		state.sentImage = { value: image };
+		await action.setImage(image);
+	}
+
+	/** setState, skipped when the key is already in that state. */
+	private async sendState(action: KeyAction<PlaySettings>, state: KeyState, value: number): Promise<void> {
+		if (state.sentState === value) return;
+		state.sentState = value;
+		await action.setState(value);
 	}
 
 	private iconBase(name: "play" | "pause" | "stop"): { svgBody: string } | { dataUri: string } {
@@ -209,6 +238,12 @@ abstract class PlayActionBase extends RoonAction<PlaySettings> {
 @action({ UUID: `${P}.play-pause` })
 export class PlayPauseAction extends PlayActionBase {
 	protected override pickBase(output: RoonOutput, settings: PlaySettings, hasArt: boolean) {
+		// One look whatever the play state: the art (kept while paused, like
+		// the dials), else the play icon.
+		if (settings.lockState === true) {
+			if (settings.showCoverArt && hasArt) return "art";
+			return output.isPlayAllowed || output.isPauseAllowed ? "play" : null;
+		}
 		switch (output.state) {
 			case "playing":
 			case "loading":

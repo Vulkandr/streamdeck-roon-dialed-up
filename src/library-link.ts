@@ -1,5 +1,5 @@
 import streamDeck from "@elgato/streamdeck";
-import { RoonLibraryClient, UnsupportedCoreError, type AddMode, type TrackInfo } from "roon-library-controls";
+import { RoonLibraryClient, UnsupportedCoreError, type AddMode, type PlayHow, type PlaylistInfo, type TrackInfo } from "roon-library-controls";
 
 import { getPairedCore, onStatusChanged } from "./roon-connection";
 
@@ -39,6 +39,8 @@ const IDLE_STOP_MS = 10 * 60 * 1000;
 let heartKeys = 0;
 /** Other Dialed Up keys and dials on screen (see keepLibraryWarm). */
 let otherKeys = 0;
+/** Play Selected Item keys set to a smart playlist, and the settings panel while it lists playlists. */
+let playlistHolders = 0;
 /** A Heart key has been on screen since the plugin started. */
 let heartSeen = false;
 let client: RoonLibraryClient | null = null;
@@ -96,7 +98,7 @@ export async function libraryAdd(zoneId: string, mode: AddMode): Promise<TrackIn
 
 /** How many on-screen keys want the link open right now. */
 function activeWatchers(): number {
-	return heartKeys + (heartSeen ? otherKeys : 0);
+	return heartKeys + playlistHolders + (heartSeen ? otherKeys : 0);
 }
 
 /** Starts the link when the first watcher arrives, schedules the idle stop when the last one leaves. */
@@ -149,6 +151,50 @@ export function watchLibrary(): () => void {
 			heartKeys = Math.max(0, heartKeys - 1);
 		},
 	);
+}
+
+/**
+ * Keeps the link up for playlists: held by each Play Selected Item key set
+ * to a smart playlist (the extension API can't play those), and by the
+ * settings panel while it fetches the playlist list (only this link can
+ * tell smart, Qobuz and TIDAL playlists apart). Doesn't count as a Heart
+ * key, so it doesn't make every other key keep the link warm.
+ */
+export function watchLibraryForPlaylists(): () => void {
+	return holder(
+		() => {
+			playlistHolders++;
+		},
+		() => {
+			playlistHolders = Math.max(0, playlistHolders - 1);
+		},
+	);
+}
+
+/** Resolves true once the link is ready, false if it can't be (unsupported) or after `timeoutMs`. */
+export function waitForLibrary(timeoutMs: number): Promise<boolean> {
+	if (isLibraryReady()) return Promise.resolve(true);
+	return new Promise((resolve) => {
+		const end = Date.now() + timeoutMs;
+		const tick = setInterval(() => {
+			if (isLibraryReady() || status.phase === "unsupported" || status.phase === "off" || Date.now() > end) {
+				clearInterval(tick);
+				resolve(isLibraryReady());
+			}
+		}, 150);
+	});
+}
+
+/** Every playlist with its kind and durable id, in the Core's order (null while the link isn't ready). */
+export function getLibraryPlaylists(): PlaylistInfo[] | null {
+	if (!client || status.phase !== "ready") return null;
+	return client.playlists();
+}
+
+/** Plays a playlist (by id or exact name) the way Roon's own app does. Works for smart playlists. */
+export async function libraryPlayPlaylist(zoneId: string, playlist: string, options: { how: PlayHow; shuffle: boolean }): Promise<PlaylistInfo> {
+	if (!client || status.phase !== "ready") throw new Error("library link not ready");
+	return client.playPlaylist(zoneId, playlist, options);
 }
 
 /**

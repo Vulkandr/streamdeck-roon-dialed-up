@@ -20,6 +20,7 @@ import {
 import { openRoonToasted, ROON_TOASTED_GITHUB_URL, ROON_TOASTED_WEBSITE_URL } from "./roon-toasted-link";
 import { getLibraryStatus, onLibraryChanged } from "./library-link";
 import { getToastedStatus, onToastedStatusChanged, refreshToastedStatus } from "./roon-toasted-status";
+import { listPlaylistsForPanel, suggestItems, type ItemType } from "./actions/play-item-actions";
 
 const log = streamDeck.logger.createScope("pi-bridge");
 
@@ -147,6 +148,32 @@ export function startPropertyInspectorBridge(): void {
 				log.info(`setManual(${message.host}:${message.port}) -> ${JSON.stringify(result)}`);
 				await streamDeck.ui.sendToPropertyInspector({ type: "manualResult", ...result });
 				await pushNow();
+				break;
+			}
+
+			case "getPlaylists": {
+				// The dropdown on Play Selected Item (type Playlist).
+				try {
+					const items = await listPlaylistsForPanel();
+					await streamDeck.ui.sendToPropertyInspector({ type: "playlists", ok: true, items: items as unknown as JsonValue });
+				} catch (err) {
+					log.warn(`couldn't list playlists: ${err}`);
+					await streamDeck.ui.sendToPropertyInspector({ type: "playlists", ok: false, items: [] });
+				}
+				break;
+			}
+
+			case "suggest": {
+				// Names for the Item title field while typing (Play Selected Item, not playlists).
+				const m = message as { itemType?: string; query?: string; seq?: number };
+				try {
+					const items = await suggestItems((m.itemType ?? "artists") as ItemType, String(m.query ?? ""));
+					// null: a newer keystroke replaced this one before it ran.
+					if (items) await streamDeck.ui.sendToPropertyInspector({ type: "suggestions", seq: m.seq ?? 0, items: items as unknown as JsonValue });
+				} catch (err) {
+					log.warn(`couldn't search: ${err}`);
+					await streamDeck.ui.sendToPropertyInspector({ type: "suggestions", seq: m.seq ?? 0, items: [] });
+				}
 				break;
 			}
 
